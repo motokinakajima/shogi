@@ -21,6 +21,40 @@
         #shogi-board td:hover {
             background: #f4a460;
         }
+        
+        /* Piece styling */
+        .piece.player-1 {
+            color: #000;
+        }
+        
+        .piece.player-2 {
+            color: #c41e3a;
+        }
+        
+        .piece.promoted {
+            text-decoration: underline;
+        }
+        
+        .selected {
+            background: #ff6b6b !important;
+        }
+        
+        .possible-move {
+            background: #4ecdc4 !important;
+        }
+        
+        /* Captured pieces area */
+        .captured-pieces {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+        
+        .player-captured {
+            border: 2px solid #000;
+            padding: 10px;
+            min-height: 60px;
+        }
     </style>
 </head>
 <body>
@@ -55,9 +89,29 @@
         </tr>
     </table>
 
+    <!-- Captured pieces display -->
+    <div class="captured-pieces">
+        <div class="player-captured" id="player1-captured">
+            <h3>Player 1 Captured</h3>
+            <div id="player1-pieces"></div>
+        </div>
+        <div class="player-captured" id="player2-captured">
+            <h3>Player 2 Captured</h3>
+            <div id="player2-pieces"></div>
+        </div>
+    </div>
+
+    <!-- Game controls -->
+    <div style="text-align: center; margin: 20px;">
+        <button id="flip-board">Flip Board</button>
+        <button id="reset-game">Reset Game</button>
+        <div id="game-status">Current Player: <span id="current-player">1</span></div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="/javascripts/socket-client.js"></script>
     <script src="/javascripts/shogi-pieces.js"></script>
+    <script src="/javascripts/shogi-board-class.js"></script>
     <script src="/javascripts/shogi-board.js"></script>
 </body>
 </html>
