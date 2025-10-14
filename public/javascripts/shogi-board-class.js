@@ -18,6 +18,10 @@ class ShogiBoard {
     this.gameState = 'playing'; // 'playing', 'check', 'checkmate', 'stalemate'
     this.isFlipped = false; // board orientation
     
+    // Drop mode properties
+    this.dropMode = false;
+    this.selectedDropPiece = null;
+    
     // Piece definitions with alphabetic IDs for reliability
     this.pieceTypes = {
       'K': { char: '王', name: 'King', promotesTo: null },
@@ -135,6 +139,12 @@ class ShogiBoard {
     const boardX = this.isFlipped ? 8 - x : x;
     const boardY = this.isFlipped ? 8 - y : y;
     
+    // Check for drop mode first
+    if (this.dropMode && this.selectedDropPiece) {
+      this.handleDropClick(boardX, boardY);
+      return;
+    }
+    
     // If clicking on selected piece, cancel selection
     if (this.selectedPiece && this.selectedPiece.x === boardX && this.selectedPiece.y === boardY) {
       this.clearSelection();
@@ -157,6 +167,98 @@ class ShogiBoard {
     }
   }
   
+  // Handle drop click during drop mode
+  handleDropClick(x, y) {
+    if (!this.selectedDropPiece) return;
+    
+    // Check if drop is valid
+    if (this.isValidDropPosition(x, y, this.selectedDropPiece.type, this.selectedDropPiece.player)) {
+      // Perform the drop
+      const piece = this.createPiece(this.selectedDropPiece.type, this.selectedDropPiece.player);
+      
+      // Place piece on board
+      this.board[y][x] = piece;
+      
+      // Remove from captured pieces
+      this.capturedPieces[this.selectedDropPiece.player][this.selectedDropPiece.type]--;
+      
+      // Switch turns
+      this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+      
+      // Exit drop mode
+      this.exitDropMode();
+      
+      // Update display
+      this.render();
+      this.renderCapturedPieces();
+      
+      console.log(`Dropped ${this.selectedDropPiece.type} at (${x}, ${y})`);
+      
+      // Notify external handler
+      if (window.updateGameStatus) {
+        window.updateGameStatus();
+      }
+    } else {
+      alert('Invalid drop position!');
+    }
+  }
+  
+  // Check if drop position is valid
+  isValidDropPosition(x, y, pieceType, player) {
+    // Position must be empty
+    if (this.board[y][x] !== null) {
+      return false;
+    }
+    
+    // Basic shogi drop rules
+    if (pieceType === 'P') { // Pawn drop rules
+      // Cannot drop pawn if there's already a pawn in the same column
+      for (let row = 0; row < 9; row++) {
+        const piece = this.board[row][x];
+        if (piece && piece.type === 'P' && piece.owner === player && !piece.promoted) {
+          return false;
+        }
+      }
+      
+      // Cannot drop pawn for immediate checkmate (simplified - just prevent drop on last rank)
+      if ((player === 1 && y === 0) || (player === 2 && y === 8)) {
+        return false;
+      }
+    }
+    
+    // Pieces that cannot be dropped on their starting edge
+    if (pieceType === 'L') { // Lance
+      if ((player === 1 && y === 0) || (player === 2 && y === 8)) {
+        return false;
+      }
+    }
+    
+    if (pieceType === 'N') { // Knight
+      if ((player === 1 && y <= 1) || (player === 2 && y >= 7)) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  // Enter drop mode
+  enterDropMode(pieceType, player) {
+    this.dropMode = true;
+    this.selectedDropPiece = { type: pieceType, player: player };
+    this.clearSelection(); // Clear any piece selection
+    this.render(); // Re-render to show drop highlights
+    console.log(`Entered drop mode: ${pieceType} for player ${player}`);
+  }
+  
+  // Exit drop mode
+  exitDropMode() {
+    this.dropMode = false;
+    this.selectedDropPiece = null;
+    this.render(); // Re-render to remove drop highlights
+    console.log('Exited drop mode');
+  }
+
   // Clear selection
   clearSelection() {
     this.selectedPiece = null;
@@ -554,10 +656,13 @@ class ShogiBoard {
   
   // Handle clicking on captured pieces for dropping
   handleDropPieceClick(pieceType) {
-    // TODO: Implement drop piece UI
-    // For now, just log the action
-    console.log(`Selected ${this.pieceTypes[pieceType].name} for dropping`);
-    // You could set a "drop mode" here and then handle board clicks differently
+    // Call the external drop handler if available
+    if (window.handleCapturedPieceClick) {
+      window.handleCapturedPieceClick(pieceType, this.currentPlayer);
+    } else {
+      console.log(`Selected ${this.pieceTypes[pieceType].name} for dropping`);
+      console.log('Drop handler not found - make sure shogi-board.js is loaded');
+    }
   }
   
   // Get board state for serialization

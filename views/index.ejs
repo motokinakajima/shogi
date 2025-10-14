@@ -43,6 +43,28 @@
             background: #4ecdc4 !important;
         }
         
+        .possible-drop {
+            background: #90EE90 !important;
+            border: 2px dashed #228B22 !important;
+        }
+        
+        /* Captured pieces styling */
+        .captured-piece-clickable {
+            padding: 2px 4px;
+            margin: 2px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+        
+        .captured-piece-clickable:hover {
+            background: #f4a460;
+        }
+        
+        .captured-piece-clickable.selected {
+            background: #4ecdc4 !important;
+            color: white;
+        }
+        
         /* Captured pieces area */
         .captured-pieces {
             display: flex;
@@ -54,6 +76,46 @@
             border: 2px solid #000;
             padding: 10px;
             min-height: 60px;
+        }
+        
+        /* Piece palette styling */
+        .palette-piece {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 2px solid #000;
+            background: #deb887;
+            text-align: center;
+            line-height: 36px;
+            margin: 2px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .palette-piece:hover {
+            background: #f4a460;
+        }
+        
+        .palette-piece.selected {
+            background: #4ecdc4 !important;
+            border-color: #2c9aa0;
+        }
+        
+        .palette-piece[data-player="1"] {
+            color: #000;
+        }
+        
+        .palette-piece[data-player="2"] {
+            color: #c41e3a;
+        }
+        
+        .piece-row {
+            margin: 5px 0;
+        }
+        
+        .setup-mode-active .board-cell {
+            border-color: #4ecdc4 !important;
         }
     </style>
 </head>
@@ -105,7 +167,50 @@
     <div style="text-align: center; margin: 20px;">
         <button id="flip-board">Flip Board</button>
         <button id="reset-game">Reset Game</button>
+        <button id="toggle-setup-mode">Setup Mode</button>
+        <button id="clear-board">Clear Board</button>
         <div id="game-status">Current Player: <span id="current-player">1</span></div>
+        <div id="setup-status" style="display: none; color: #c41e3a; font-weight: bold;">
+            Setup Mode Active - Click pieces to place them
+        </div>
+    </div>
+
+    <!-- Piece palette for setup mode -->
+    <div id="piece-palette" style="display: none; text-align: center; margin: 20px; border: 2px solid #000; padding: 15px;">
+        <h3>Piece Palette - Click to select, then click board to place</h3>
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+            <div class="piece-selection">
+                <h4>Player 1 (Black)</h4>
+                <div class="piece-row">
+                    <span class="palette-piece" data-piece="FU" data-player="1">歩</span>
+                    <span class="palette-piece" data-piece="KY" data-player="1">香</span>
+                    <span class="palette-piece" data-piece="KE" data-player="1">桂</span>
+                    <span class="palette-piece" data-piece="GI" data-player="1">銀</span>
+                    <span class="palette-piece" data-piece="KI" data-player="1">金</span>
+                    <span class="palette-piece" data-piece="HI" data-player="1">飛</span>
+                    <span class="palette-piece" data-piece="KA" data-player="1">角</span>
+                    <span class="palette-piece" data-piece="OU" data-player="1">王</span>
+                </div>
+            </div>
+            <div class="piece-selection">
+                <h4>Player 2 (Red)</h4>
+                <div class="piece-row">
+                    <span class="palette-piece" data-piece="FU" data-player="2">歩</span>
+                    <span class="palette-piece" data-piece="KY" data-player="2">香</span>
+                    <span class="palette-piece" data-piece="KE" data-player="2">桂</span>
+                    <span class="palette-piece" data-piece="GI" data-player="2">銀</span>
+                    <span class="palette-piece" data-piece="KI" data-player="2">金</span>
+                    <span class="palette-piece" data-piece="HI" data-player="2">飛</span>
+                    <span class="palette-piece" data-piece="KA" data-player="2">角</span>
+                    <span class="palette-piece" data-piece="OU" data-player="2">王</span>
+                </div>
+            </div>
+            <div class="piece-selection">
+                <h4>Remove</h4>
+                <span class="palette-piece" data-piece="REMOVE" data-player="0" style="background: #ff6b6b;">✗</span>
+            </div>
+        </div>
+        <div id="selected-piece-display" style="margin-top: 10px; font-weight: bold;"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
