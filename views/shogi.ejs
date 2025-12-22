@@ -4,40 +4,449 @@
     <meta charset="utf-8" />
     <title>Shogi</title>
     <style>
+        body { font-family: sans-serif; }
+        #game-container { display: flex; gap: 20px; }
+        
         table { border-collapse: collapse; }
         td {
-            width: 40px;
-            height: 40px;
-            border: 1px solid black;
+            width: 44px;
+            height: 44px;
+            border: 1px solid #333;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            font-size: 18px;
+            background: #f5deb3;
+        }
+        td.selected { background: #ffeb3b; }
+        td.legal-target { background: #90ee90; }
+        td:hover { outline: 2px solid #555; }
+        
+        .piece { font-weight: bold; }
+        .piece.promoted { color: #c00; }
+        .piece.opponent { transform: rotate(180deg); display: inline-block; }
+        
+        #promote-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        #promote-modal.show { display: flex; }
+        #promote-dialog {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
             text-align: center;
         }
+        #promote-dialog h3 { margin: 0 0 15px 0; }
+        #promote-dialog button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .captured-section {
+            padding: 10px;
+            border: 1px solid #999;
+            min-width: 100px;
+        }
+        .captured-section h4 { margin: 0 0 8px 0; }
+        .captured-piece {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            border: 1px solid #666;
+            margin: 2px;
+            cursor: pointer;
+            background: #f5deb3;
+            font-weight: bold;
+        }
+        .captured-piece.selected { background: #ffeb3b; }
+        .captured-piece:hover { outline: 2px solid #555; }
+        
+        #controls { margin-bottom: 12px; }
+        #status { margin-top: 8px; font-weight: bold; }
     </style>
 </head>
 <body>
-    <table id="board"></table>
+    <div id="controls">
+        <label>Player:
+            <select id="player">
+                <option value="sente">先手 (Sente)</option>
+                <option value="gote">後手 (Gote)</option>
+            </select>
+        </label>
+        <button id="refreshBtn">Refresh</button>
+        <button id="cancelBtn">Cancel</button>
+    </div>
+
+    <div id="game-container">
+        <div class="captured-section" id="left-captured">
+            <h4 id="left-label">後手 持ち駒</h4>
+            <div id="left-pieces"></div>
+        </div>
+        <table id="board"></table>
+        <div class="captured-section" id="right-captured">
+            <h4 id="right-label">先手 持ち駒</h4>
+            <div id="right-pieces"></div>
+        </div>
+    </div>
+    
+    <div id="promote-modal">
+        <div id="promote-dialog">
+            <h3>成りますか？</h3>
+            <button id="promoteYes">成る</button>
+            <button id="promoteNo">成らない</button>
+        </div>
+    </div>
+    
+    <div id="status">Loading…</div>
 
     <script>
-        async function loadBoard() {
-            const res = await fetch('/board');
-            const board = await res.json();
+        const KANJI = { fu:'歩', kyosha:'香', keima:'桂', gin:'銀', kin:'金', kaku:'角', hisha:'飛', ou:'王' };
+        
+        const VECTORS = {
+            fu: [[1,0]],
+            kin: [[1,0],[1,1],[1,-1],[0,1],[0,-1],[-1,0]],
+            gin: [[1,0],[1,1],[1,-1],[-1,1],[-1,-1]],
+            keima: [[2,1],[2,-1]],
+            kyosha: Array.from({length:8},(_,i)=>[i+1,0]),
+            kaku: [...Array.from({length:8},(_,i)=>[i+1,i+1]),...Array.from({length:8},(_,i)=>[i+1,-(i+1)]),...Array.from({length:8},(_,i)=>[-(i+1),i+1]),...Array.from({length:8},(_,i)=>[-(i+1),-(i+1)])],
+            hisha: [...Array.from({length:8},(_,i)=>[i+1,0]),...Array.from({length:8},(_,i)=>[-(i+1),0]),...Array.from({length:8},(_,i)=>[0,i+1]),...Array.from({length:8},(_,i)=>[0,-(i+1)])],
+            ou: [[1,0],[1,1],[1,-1],[-1,0],[-1,1],[-1,-1],[0,1],[0,-1]]
+        };
 
+        const state = { board:null, selected:null, selectedDrop:null, loading:false, pollingId:null, interacting:false, targets:[], lastFullRender:0, pendingMove:null };
+
+        const getPlayer = () => document.getElementById('player').value;
+        const setStatus = msg => document.getElementById('status').textContent = msg;
+
+        async function loadBoard(opts={}) {
+            if (state.loading) return;
+            state.loading = true;
+            try {
+                const res = await fetch('/board');
+                const newBoard = await res.json();
+                if (opts.diff && state.board) {
+                    applyDiff(newBoard);
+                } else {
+                    state.board = newBoard;
+                    if (!opts.preserve) clearSelection();
+                    render();
+                }
+            } catch(e) { console.error(e); }
+            state.loading = false;
+        }
+
+        function applyDiff(newBoard) {
+            const player = getPlayer();
+            const flip = player==='gote';
+            for (let y=0;y<9;y++) {
+                for (let x=0;x<9;x++) {
+                    const oldCell = state.board.cells[y][x];
+                    const newCell = newBoard.cells[y][x];
+                    if (cellsEqual(oldCell, newCell)) continue;
+                    state.board.cells[y][x] = newCell;
+                    updateCell(x, y, newCell, player, flip);
+                }
+            }
+            state.board.capturedPieces = newBoard.capturedPieces;
+            renderCaptured();
+        }
+
+        function cellsEqual(a, b) {
+            if (!a && !b) return true;
+            if (!a || !b) return false;
+            return a.kind===b.kind && a.owner===b.owner && a.promoted===b.promoted;
+        }
+
+        function updateCell(x, y, cell, player, flip) {
+            const r = flip ? 8-y : y;
+            const c = flip ? 8-x : x;
+            const table = document.getElementById('board');
+            const td = table.rows[r]?.cells[c];
+            if (!td) return;
+            td.innerHTML = '';
+            td.className = '';
+            if (cell) {
+                const span = document.createElement('span');
+                span.className = 'piece';
+                if (cell.promoted) span.classList.add('promoted');
+                if (cell.owner !== player) span.classList.add('opponent');
+                span.textContent = (cell.promoted?'成':'') + KANJI[cell.kind];
+                td.appendChild(span);
+            }
+            if (state.selected?.x===x && state.selected?.y===y) td.classList.add('selected');
+            if (state.targets.some(t=>t.x===x&&t.y===y)) td.classList.add('legal-target');
+        }
+
+        function startPolling() {
+            state.pollingId = setInterval(() => {
+                if (!state.loading && !state.interacting) {
+                    const now = Date.now();
+                    const fullRender = (now - state.lastFullRender) > 5000;
+                    loadBoard({preserve:true, diff:!fullRender});
+                    if (fullRender) state.lastFullRender = now;
+                }
+            }, 500);
+        }
+
+        function clearSelection() {
+            state.selected = null;
+            state.selectedDrop = null;
+            state.interacting = false;
+            state.targets = [];
+        }
+
+        function getVectors(kind, promoted, owner) {
+            let v = VECTORS[kind] || [];
+            if (promoted) {
+                if (['fu','kyosha','keima','gin'].includes(kind)) v = VECTORS.kin;
+                else if (kind==='kaku') v = [...VECTORS.kaku,[1,0],[-1,0],[0,1],[0,-1]];
+                else if (kind==='hisha') v = [...VECTORS.hisha,[1,1],[1,-1],[-1,1],[-1,-1]];
+            }
+            return owner==='gote' ? v : v.map(([dy,dx])=>[-dy,dx]);
+        }
+
+        function computeTargets(y, x, piece) {
+            const targets = [];
+            for (const [dy,dx] of getVectors(piece.kind, piece.promoted, piece.owner)) {
+                const ny=y+dy, nx=x+dx;
+                if (ny<0||ny>8||nx<0||nx>8) continue;
+                const t = state.board.cells[ny][nx];
+                if (t && t.owner===piece.owner) continue;
+                if (['kyosha','kaku','hisha'].includes(piece.kind) && (Math.abs(dy)>1||Math.abs(dx)>1)) {
+                    let cy=y+Math.sign(dy), cx=x+Math.sign(dx), blocked=false;
+                    while(cy!==ny||cx!==nx) { if(state.board.cells[cy][cx]){blocked=true;break;} cy+=Math.sign(dy);cx+=Math.sign(dx); }
+                    if (blocked) continue;
+                }
+                targets.push({y:ny,x:nx});
+            }
+            return targets;
+        }
+
+        function computeDropTargets(kind, owner) {
+            const targets = [];
+            for(let y=0;y<9;y++) {
+                if (kind==='fu' || kind==='kyosha') {
+                    if ((owner==='sente' && y===0) || (owner==='gote' && y===8)) continue;
+                }
+                if (kind==='keima') {
+                    if ((owner==='sente' && y<=1) || (owner==='gote' && y>=7)) continue;
+                }
+                for(let x=0;x<9;x++) {
+                    if(!state.board.cells[y][x]) targets.push({y,x});
+                }
+            }
+            return targets;
+        }
+
+        function render() {
+            if (!state.board) return;
+            const player = getPlayer();
+            const flip = player==='gote';
             const table = document.getElementById('board');
             table.innerHTML = '';
 
-            board.cells.forEach(row => {
+            for (let r=0;r<9;r++) {
+                const y = flip ? 8-r : r;
                 const tr = document.createElement('tr');
-                row.forEach(cell => {
+                for (let c=0;c<9;c++) {
+                    const x = flip ? 8-c : c;
+                    const cell = state.board.cells[y][x];
                     const td = document.createElement('td');
+                    td.dataset.x = x;
+                    td.dataset.y = y;
                     if (cell) {
-                        td.textContent = cell.kind[0];
+                        const span = document.createElement('span');
+                        span.className = 'piece';
+                        if (cell.promoted) span.classList.add('promoted');
+                        if (cell.owner !== player) span.classList.add('opponent');
+                        span.textContent = (cell.promoted?'成':'') + KANJI[cell.kind];
+                        td.appendChild(span);
                     }
+                    if (state.selected?.x===x && state.selected?.y===y) td.classList.add('selected');
+                    if (state.targets.some(t=>t.x===x&&t.y===y)) td.classList.add('legal-target');
+                    td.onclick = () => onCell(x,y);
                     tr.appendChild(td);
-                });
+                }
                 table.appendChild(tr);
+            }
+
+            renderCaptured();
+        }
+
+        function renderCaptured() {
+            const player = getPlayer();
+            const leftOwner = player==='sente' ? 'gote' : 'sente';
+            const rightOwner = player;
+            document.getElementById('left-label').textContent = leftOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
+            document.getElementById('right-label').textContent = rightOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
+            [['left', leftOwner], ['right', rightOwner]].forEach(([side, owner]) => {
+                const div = document.getElementById(side+'-pieces');
+                div.innerHTML = '';
+                const grouped = {};
+                (state.board.capturedPieces||[]).filter(p=>p.owner===owner).forEach(p => grouped[p.kind]=(grouped[p.kind]||0)+1);
+                for (const [kind,count] of Object.entries(grouped)) {
+                    const el = document.createElement('div');
+                    el.className = 'captured-piece';
+                    if (state.selectedDrop?.owner===owner && state.selectedDrop?.kind===kind) el.classList.add('selected');
+                    el.textContent = KANJI[kind] + (count>1?count:'');
+                    el.onclick = () => onCaptured(owner,kind);
+                    div.appendChild(el);
+                }
             });
         }
 
+        function onCaptured(owner, kind) {
+            if (owner !== getPlayer()) { setStatus('Not your piece'); return; }
+            if (state.selectedDrop?.kind===kind) { clearSelection(); render(); return; }
+            clearSelection();
+            state.selectedDrop = {owner,kind};
+            state.interacting = true;
+            state.targets = computeDropTargets(kind, owner);
+            render();
+            setStatus('Select drop location');
+        }
+
+        function onCell(x, y) {
+            const player = getPlayer();
+            const cell = state.board.cells[y][x];
+
+            if (state.selectedDrop) {
+                if (cell) { setStatus('Cell occupied'); return; }
+                sendDrop(state.selectedDrop.kind, x, y);
+                return;
+            }
+
+            if (!state.selected) {
+                if (!cell) return;
+                if (cell.owner !== player) { setStatus('Not your piece'); return; }
+                state.selected = {x,y};
+                state.interacting = true;
+                state.targets = computeTargets(y,x,cell);
+                render();
+                setStatus('Select destination');
+                return;
+            }
+
+            if (state.selected.x===x && state.selected.y===y) { clearSelection(); render(); return; }
+            if (!state.targets.some(t=>t.x===x&&t.y===y)) { setStatus('Invalid'); return; }
+            tryMove(state.selected, {x,y});
+        }
+
+        function canPromote(kind, promoted, owner, fromY, toY) {
+            if (promoted) return false;
+            if (['kin','ou'].includes(kind)) return false;
+            const zone = owner==='sente' ? [0,1,2] : [6,7,8];
+            return zone.includes(fromY) || zone.includes(toY);
+        }
+
+        function mustPromote(kind, promoted, owner, toY) {
+            if (promoted) return false;
+            if (kind==='fu' || kind==='kyosha') {
+                return (owner==='sente' && toY===0) || (owner==='gote' && toY===8);
+            }
+            if (kind==='keima') {
+                return (owner==='sente' && toY<=1) || (owner==='gote' && toY>=7);
+            }
+            return false;
+        }
+
+        function tryMove(from, to) {
+            const piece = state.board.cells[from.y][from.x];
+            const can = canPromote(piece.kind, piece.promoted, piece.owner, from.y, to.y);
+            const must = mustPromote(piece.kind, piece.promoted, piece.owner, to.y);
+            
+            if (must) {
+                sendMove(from, to, true);
+            } else if (can) {
+                showPromoteModal(from, to);
+            } else {
+                sendMove(from, to, false);
+            }
+        }
+
+        function showPromoteModal(from, to) {
+            state.pendingMove = {from, to};
+            document.getElementById('promote-modal').classList.add('show');
+        }
+
+        function hidePromoteModal() {
+            document.getElementById('promote-modal').classList.remove('show');
+            state.pendingMove = null;
+        }
+
+        async function sendMove(from, to, promoting) {
+            state.interacting = true;
+            try {
+                const res = await fetch('/move', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({player:getPlayer(),fromX:from.x,fromY:from.y,toX:to.x,toY:to.y,promoting})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                state.board = data.board;
+                clearSelection();
+                render();
+                if (data.isCheckmate) {
+                    setStatus('詰み！ ' + data.winner + ' の勝ち！');
+                } else if (data.isCheck) {
+                    setStatus('Turn: '+data.currentTurn + ' 王手！');
+                } else {
+                    setStatus('Turn: '+data.currentTurn);
+                }
+            } catch(e) { setStatus(e.message); }
+        }
+
+        async function sendDrop(kind, x, y) {
+            state.interacting = true;
+            try {
+                const res = await fetch('/move', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({player:getPlayer(),fromX:null,fromY:null,toX:x,toY:y,pieceKind:kind,promoting:false})
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                state.board = data.board;
+                clearSelection();
+                render();
+                if (data.isCheckmate) {
+                    setStatus('詰み！ ' + data.winner + ' の勝ち！');
+                } else if (data.isCheck) {
+                    setStatus('Turn: '+data.currentTurn + ' 王手！');
+                } else {
+                    setStatus('Turn: '+data.currentTurn);
+                }
+            } catch(e) { setStatus(e.message); }
+        }
+
+        document.getElementById('refreshBtn').onclick = () => loadBoard();
+        document.getElementById('cancelBtn').onclick = () => { clearSelection(); render(); };
+        document.getElementById('player').onchange = render;
+        document.getElementById('promoteYes').onclick = () => {
+            if (state.pendingMove) {
+                const {from, to} = state.pendingMove;
+                hidePromoteModal();
+                sendMove(from, to, true);
+            }
+        };
+        document.getElementById('promoteNo').onclick = () => {
+            if (state.pendingMove) {
+                const {from, to} = state.pendingMove;
+                hidePromoteModal();
+                sendMove(from, to, false);
+            }
+        };
         loadBoard();
+        startPolling();
     </script>
 </body>
 </html>
