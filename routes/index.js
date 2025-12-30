@@ -1,12 +1,15 @@
 import express from 'express';
 var router = express.Router();
-
-
+import { supabase } from '../lib/supabase.js';
 
 /* GET home page. */
-router.get('/', function (req, res, next) {
+router.get('/', async function (req, res, next) {
+    const {data, error: selectError} = await supabase.from('users').select('*');
+
     res.render('index', { title: 'Express' });
 });
+
+/*
 
 router.get('/board', function (req, res, next) {
     const game = req.app.locals.game;
@@ -42,5 +45,6 @@ router.post('/move', function (req, res, next) {
 router.get('/shogi', function (req, res, next) {
     res.render('shogi', { title: 'Shogi Game' });
 });
+*/
 
 export default router;

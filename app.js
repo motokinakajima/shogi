@@ -7,18 +7,17 @@ import logger from 'morgan';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
-import { Game } from './domain/Game.js';
-
 import indexRouter from './routes/index.js';
 import usersRouter from './routes/users.js';
+import loginRouter from './routes/login.js';
+import lobbyRouter from './routes/lobby.js';
+import apiRouter from './routes/api.js';
+import gameRouter from './routes/game.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-
-const game = new Game(1, 'whitePlayer', 'blackPlayer');
-app.locals.game = game;
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -32,6 +31,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/login', loginRouter);
+app.use('/lobby', lobbyRouter);
+app.use('/api', apiRouter);
+app.use('/game', gameRouter);
 
 // catch 404
 app.use((req, res, next) => {

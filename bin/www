@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import 'dotenv/config';
+import { setupWebSocket } from '../ws/index.js';
+
 import http from 'http';
 import app from '../app.js';
 
@@ -10,6 +13,8 @@ const server = http.createServer(app);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+setupWebSocket(server);
 
 function normalizePort(val) {
   const port = parseInt(val, 10);
