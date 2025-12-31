@@ -177,12 +177,8 @@
                 updateWaitingModal();
             }
 
-            if (msg.type === 'challenge:accepted') {
-                outgoingChallenges.delete(msg.challengeId);
-                incomingChallenges.splice(incomingChallenges.findIndex(c => c.challengeId === msg.challengeId), 1);
-                updateWaitingModal();
-                updateChallengeModal();
-                alert('Challenge accepted! Game starting...');
+            if (msg.type === 'game:start') {
+                window.location.href = `/game/${msg.gameId}`;
             }
 
             if (msg.type === 'challenge:declined') {

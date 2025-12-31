@@ -28,7 +28,7 @@ export class Game {
         if (this.isFinished) {
             throw new Error("Game already finished");
         }
-        if (move.playerColor !== this.currentTurn) {
+        if (move.player !== this.currentTurn) {
             throw new Error("Not your turn");
         }
         this.validateMove(move);
@@ -36,12 +36,12 @@ export class Game {
         const backup = this.createBoardBackup();
         this.applyMoveToBoard(move);
         
-        if (this.board.isInCheck(move.playerColor)) {
+        if (this.board.isInCheck(move.player)) {
             this.restoreBoardBackup(backup);
             throw new Error("Cannot leave your king in check");
         }
         
-        const opponent = move.playerColor === Player.SENTE ? Player.GOTE : Player.SENTE;
+        const opponent = move.player === Player.SENTE ? Player.GOTE : Player.SENTE;
         const isCheck = this.board.isInCheck(opponent);
         
         let isCheckmate = false;
@@ -49,7 +49,7 @@ export class Game {
             isCheckmate = this.isCheckmate(opponent);
             if (isCheckmate) {
                 this.isFinished = true;
-                this.winner = move.playerColor;
+                this.winner = move.player;
             }
         }
         
@@ -62,6 +62,9 @@ export class Game {
     }
 
     isCheckmate(player) {
+        if (!this.board.isInCheck(player)) {
+            return false;
+        }
         const moves = this.generateAllLegalMoves(player);
         return moves.length === 0;
     }
@@ -87,13 +90,21 @@ export class Game {
                         if (!this.isPathClear(x, y, toX, toY)) continue;
                     }
                     
-                    for (const promoting of [false, true]) {
-                        if (promoting && !piece.canPromote(y, toY)) continue;
-                        
-                        const move = { playerColor: player, fromX: x, fromY: y, toX, toY, pieceKind: null, promoting };
+                    const canProm = piece.canPromote(y, toY);
+                    const mustProm = !piece.promoted && this.mustPromote(piece.kind, player, toY);
+                    
+                    const promotionOptions = [];
+                    if (mustProm) {
+                        promotionOptions.push(true);
+                    } else {
+                        promotionOptions.push(false);
+                        if (canProm) promotionOptions.push(true);
+                    }
+                    
+                    for (const promoting of promotionOptions) {
+                        const move = { player, fromX: x, fromY: y, toX, toY, pieceKind: null, promoting };
                         if (this.isMoveLegal(move)) {
                             legalMoves.push(move);
-                            if (!promoting) break;
                         }
                     }
                 }
@@ -128,7 +139,7 @@ export class Game {
                         if (hasFuInColumn) continue;
                     }
                     
-                    const move = { playerColor: player, fromX: null, fromY: null, toX: x, toY: y, pieceKind: kind, promoting: false };
+                    const move = { player, fromX: null, fromY: null, toX: x, toY: y, pieceKind: kind, promoting: false };
                     if (this.isMoveLegal(move)) {
                         legalMoves.push(move);
                     }
@@ -142,7 +153,7 @@ export class Game {
     isMoveLegal(move) {
         const backup = this.createBoardBackup();
         this.applyMoveToBoard(move);
-        const legal = !this.board.isInCheck(move.playerColor);
+        const legal = !this.board.isInCheck(move.player);
         this.restoreBoardBackup(backup);
         return legal;
     }
@@ -173,7 +184,7 @@ export class Game {
             this.board.setPieceAtPosition(fromX, fromY, null);
             this.board.setPieceAtPosition(toX, toY, piece);
         } else {
-            const piece = new Piece(pieceKind, move.playerColor);
+            const piece = new Piece(pieceKind, move.player);
             this.board.removeCapturedPiece(piece);
             this.board.setPieceAtPosition(toX, toY, piece);
         }
@@ -190,7 +201,7 @@ export class Game {
     }
 
     validateMove(move) {
-        const { playerColor, fromX, fromY, toX, toY, pieceKind, promoting } = move;
+        const { player, fromX, fromY, toX, toY, pieceKind, promoting } = move;
 
         if (!this.board.isInsideBoard(toX, toY)) {
             throw new Error("Destination out of board");
@@ -198,7 +209,7 @@ export class Game {
 
         if (fromX === null || fromY === null) {
             const hasCaptured = this.board.capturedPieces.find(
-                p => p.kind === pieceKind && p.owner === playerColor
+                p => p.kind === pieceKind && p.owner === player
             );
             if (!hasCaptured) {
                 throw new Error("No such captured piece to drop");
@@ -209,19 +220,25 @@ export class Game {
             if (pieceKind === PieceKind.FU) {
                 for (let y = 0; y < 9; y++) {
                     const cell = this.board.getPieceAtPosition(toX, y);
-                    if (cell && cell.kind === PieceKind.FU && !cell.promoted && cell.owner === playerColor) {
+                    if (cell && cell.kind === PieceKind.FU && !cell.promoted && cell.owner === player) {
                         throw new Error("二歩: Cannot drop pawn in column with existing unpromoted pawn");
                     }
                 }
             }
             if (pieceKind === PieceKind.FU || pieceKind === PieceKind.KYOSHA) {
-                if ((playerColor === Player.SENTE && toY === 0) || (playerColor === Player.GOTE && toY === 8)) {
+                if ((player === Player.SENTE && toY === 0) || (player === Player.GOTE && toY === 8)) {
                     throw new Error("Cannot drop piece on last rank");
                 }
             }
             if (pieceKind === PieceKind.KEIMA) {
-                if ((playerColor === Player.SENTE && toY <= 1) || (playerColor === Player.GOTE && toY >= 7)) {
+                if ((player === Player.SENTE && toY <= 1) || (player === Player.GOTE && toY >= 7)) {
                     throw new Error("Cannot drop knight on last two ranks");
+                }
+            }
+            if (pieceKind === PieceKind.FU) {
+                const move = { player, fromX: null, fromY: null, toX, toY, pieceKind, promoting: false };
+                if (this.isUchifuzume(move)) {
+                    throw new Error("打ち歩詰め: Cannot drop pawn to deliver checkmate");
                 }
             }
             return;
@@ -235,12 +252,12 @@ export class Game {
         if (!piece) {
             throw new Error("No piece at source");
         }
-        if (piece.owner !== playerColor) {
+        if (piece.owner !== player) {
             throw new Error("Not your piece");
         }
 
         const target = this.board.getPieceAtPosition(toX, toY);
-        if (target && target.owner === playerColor) {
+        if (target && target.owner === player) {
             throw new Error("Cannot capture your own piece");
         }
 
@@ -263,20 +280,58 @@ export class Game {
                 throw new Error("Promotion not allowed here");
             }
         }
+
+        if (!promoting && !piece.promoted) {
+            const mustPromote = this.mustPromote(piece.kind, player, toY);
+            if (mustPromote) {
+                throw new Error("Must promote on this rank");
+            }
+        }
+    }
+
+    getPlayerById(playerId) {
+        if (playerId === this.senteId) {
+            return Player.SENTE;
+        } else if (playerId === this.goteId) {
+            return Player.GOTE;
+        } else {
+            throw new Error("Player not in this game");
+        }
     }
 
     isPathClear(fromX, fromY, toX, toY) {
-        const stepX = Math.sign(toX - fromX);
-        const stepY = Math.sign(toY - fromY);
-        let x = fromX + stepX;
-        let y = fromY + stepY;
-        while (x !== toX || y !== toY) {
-            if (this.board.getPieceAtPosition(x, y)) {
-                return false;
-            }
-            x += stepX;
-            y += stepY;
+        return this.board.isPathClearBetween(fromX, fromY, toX, toY);
+    }
+
+    mustPromote(kind, player, toY) {
+        if (kind === PieceKind.FU || kind === PieceKind.KYOSHA) {
+            return (player === Player.SENTE && toY === 0) || (player === Player.GOTE && toY === 8);
         }
-        return true;
+        if (kind === PieceKind.KEIMA) {
+            return (player === Player.SENTE && toY <= 1) || (player === Player.GOTE && toY >= 7);
+        }
+        return false;
+    }
+
+    isUchifuzume(move) {
+        const { player, toX, toY, pieceKind } = move;
+        if (pieceKind !== PieceKind.FU) return false;
+        
+        const backup = this.createBoardBackup();
+        this.applyMoveToBoard(move);
+        
+        const opponent = player === Player.SENTE ? Player.GOTE : Player.SENTE;
+        const isCheck = this.board.isInCheck(opponent);
+        
+        if (!isCheck) {
+            this.restoreBoardBackup(backup);
+            return false;
+        }
+        
+        const opponentMoves = this.generateAllLegalMoves(opponent);
+        const isCheckmate = opponentMoves.length === 0;
+        
+        this.restoreBoardBackup(backup);
+        return isCheckmate;
     }
 }

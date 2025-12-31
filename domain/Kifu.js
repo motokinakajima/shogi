@@ -15,8 +15,8 @@ export class Kifu {
 }
 
 export class Move {
-    constructor(playerColor, fromX, fromY, toX, toY, pieceKind, promoting = false) {
-        this.playerColor = playerColor;
+    constructor(player, fromX, fromY, toX, toY, pieceKind, promoting = false) {
+        this.player = player;
         this.fromX = fromX;
         this.fromY = fromY;
         this.toX = toX;

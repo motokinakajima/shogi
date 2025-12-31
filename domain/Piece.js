@@ -25,6 +25,9 @@ export class Piece {
     }
 
     get isSliding() {
+        if (this.promoted) {
+            return this.kind === PieceKind.HISHA || this.kind === PieceKind.KAKU;
+        }
         return this.kind === PieceKind.KYOSHA ||
                this.kind === PieceKind.HISHA ||
                this.kind === PieceKind.KAKU;

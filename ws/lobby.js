@@ -6,6 +6,7 @@ import {
     getSocketByUserId
 } from './onlineUsers.js';
 import { randomUUID } from 'crypto';
+import { createGame } from '../lib/gameManager.js';
 
 const challenges = new Map();
 const CHALLENGE_EXPIRY_MS = 60000;
@@ -91,14 +92,19 @@ export function joinLobby(ws, userId, displayName) {
             const challengerWs = getSocketByUserId(challenge.fromUserId);
             if (!challengerWs) return;
 
+            const game = createGame(challenge.fromUserId, userId);
+            const gameId = game.id;
+
             challengerWs.send(JSON.stringify({
-                type: 'challenge:accepted',
-                challengeId: msg.challengeId
+                type: 'game:start',
+                challengeId: msg.challengeId,
+                gameId
             }));
 
             ws.send(JSON.stringify({
-                type: 'challenge:accepted',
-                challengeId: msg.challengeId
+                type: 'game:start',
+                challengeId: msg.challengeId,
+                gameId
             }));
 
             challenges.delete(msg.challengeId);

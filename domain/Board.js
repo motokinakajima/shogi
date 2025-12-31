@@ -7,13 +7,13 @@ export class Board {
     constructor() {
         this.cells = [
             [new Piece(PieceKind.KYOSHA, Player.GOTE), new Piece(PieceKind.KEIMA, Player.GOTE), new Piece(PieceKind.GIN, Player.GOTE), new Piece(PieceKind.KIN, Player.GOTE), new Piece(PieceKind.OU, Player.GOTE), new Piece(PieceKind.KIN, Player.GOTE), new Piece(PieceKind.GIN, Player.GOTE), new Piece(PieceKind.KEIMA, Player.GOTE), new Piece(PieceKind.KYOSHA, Player.GOTE)],
-            [null, new Piece(PieceKind.KAKU, Player.GOTE), null, null, null, null, null, new Piece(PieceKind.HISHA, Player.GOTE), null],
+            [null, new Piece(PieceKind.HISHA, Player.GOTE), null, null, null, null, null, new Piece(PieceKind.KAKU, Player.GOTE), null],
             [new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE), new Piece(PieceKind.FU, Player.GOTE)],
             [null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null],
             [null, null, null, null, null, null, null, null, null],
             [new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE), new Piece(PieceKind.FU, Player.SENTE)],
-            [null, new Piece(PieceKind.HISHA, Player.SENTE), null, null, null, null, null, new Piece(PieceKind.KAKU, Player.SENTE), null],
+            [null, new Piece(PieceKind.KAKU, Player.SENTE), null, null, null, null, null, new Piece(PieceKind.HISHA, Player.SENTE), null],
             [new Piece(PieceKind.KYOSHA, Player.SENTE), new Piece(PieceKind.KEIMA, Player.SENTE), new Piece(PieceKind.GIN, Player.SENTE), new Piece(PieceKind.KIN, Player.SENTE), new Piece(PieceKind.OU, Player.SENTE), new Piece(PieceKind.KIN, Player.SENTE), new Piece(PieceKind.GIN, Player.SENTE), new Piece(PieceKind.KEIMA, Player.SENTE), new Piece(PieceKind.KYOSHA, Player.SENTE)]
         ];
         this.capturedPieces = [];
@@ -101,7 +101,7 @@ export class Board {
                     if (!attacker || attacker.owner !== opponent) continue;
                     if (attacker.kind !== kind || attacker.promoted !== promoted) continue;
                     
-                    if (Piece.isSlidingKind(kind) && !promoted && (Math.abs(dy) > 1 || Math.abs(dx) > 1)) {
+                    if (Piece.isSlidingKind(kind) && (Math.abs(dy) > 1 || Math.abs(dx) > 1)) {
                         if (!this.isPathClearBetween(checkX, checkY, kingPos.x, kingPos.y)) continue;
                     }
                     

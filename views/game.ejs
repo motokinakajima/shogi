@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title>Shogi</title>
+    <title>Shogi Game</title>
     <style>
         body { font-family: sans-serif; }
         #game-container { display: flex; gap: 20px; }
@@ -77,14 +77,7 @@
 </head>
 <body>
     <div id="controls">
-        <label>Player:
-            <select id="player">
-                <option value="sente">先手 (Sente)</option>
-                <option value="gote">後手 (Gote)</option>
-            </select>
-        </label>
-        <button id="refreshBtn">Refresh</button>
-        <button id="cancelBtn">Cancel</button>
+        <button id="cancelBtn">Cancel Selection</button>
     </div>
 
     <div id="game-container">
@@ -110,6 +103,14 @@
     <div id="status">Loading…</div>
 
     <script>
+        const gameId = '<%= gameId %>';
+        const currentUserId = '<%= userId %>';
+        const senteId = '<%= senteId %>';
+        const goteId = '<%= goteId %>';
+        
+        const isSpectator = currentUserId !== senteId && currentUserId !== goteId;
+        const myPlayer = isSpectator ? 'sente' : (currentUserId === senteId ? 'sente' : 'gote');
+        
         const KANJI = { fu:'歩', kyosha:'香', keima:'桂', gin:'銀', kin:'金', kaku:'角', hisha:'飛', ou:'王' };
         
         const VECTORS = {
@@ -123,38 +124,55 @@
             ou: [[1,0],[1,1],[1,-1],[-1,0],[-1,1],[-1,-1],[0,1],[0,-1]]
         };
 
-        const state = { board:null, selected:null, selectedDrop:null, loading:false, pollingId:null, interacting:false, targets:[], lastFullRender:0, pendingMove:null };
+        const state = { board:null, selected:null, selectedDrop:null, loading:false, pollingId:null, interacting:false, targets:[], pendingMove:null, lastFullRender:0 };
 
-        const getPlayer = () => document.getElementById('player').value;
         const setStatus = msg => document.getElementById('status').textContent = msg;
 
-        async function loadBoard(opts={}) {
+        async function loadGameState(opts={}) {
             if (state.loading) return;
             state.loading = true;
             try {
-                const res = await fetch('/board');
-                const newBoard = await res.json();
+                const res = await fetch(`/game/${gameId}/state`);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error);
+                
                 if (opts.diff && state.board) {
-                    applyDiff(newBoard);
+                    applyDiff(data.board);
                 } else {
-                    state.board = newBoard;
+                    state.board = data.board;
                     if (!opts.preserve) clearSelection();
                     render();
                 }
-            } catch(e) { console.error(e); }
+                
+                if (data.isFinished) {
+                    const winnerName = data.winner === 'sente' ? '先手' : '後手';
+                    setStatus(`終局: ${winnerName}の勝ち！`);
+                    stopPolling();
+                } else {
+                    const turnName = data.currentTurn === 'sente' ? '先手' : '後手';
+                    if (isSpectator) {
+                        setStatus(`${turnName}の手番 (観戦中)`);
+                    } else {
+                        const isMyTurn = data.currentTurn === myPlayer;
+                        setStatus(`${turnName}の手番` + (isMyTurn ? ' (あなた)' : ''));
+                    }
+                }
+            } catch(e) { 
+                console.error(e);
+                setStatus('Error loading game: ' + e.message);
+            }
             state.loading = false;
         }
 
         function applyDiff(newBoard) {
-            const player = getPlayer();
-            const flip = player==='gote';
+            const flip = myPlayer==='gote';
             for (let y=0;y<9;y++) {
                 for (let x=0;x<9;x++) {
                     const oldCell = state.board.cells[y][x];
                     const newCell = newBoard.cells[y][x];
                     if (cellsEqual(oldCell, newCell)) continue;
                     state.board.cells[y][x] = newCell;
-                    updateCell(x, y, newCell, player, flip);
+                    updateCell(x, y, newCell, flip);
                 }
             }
             state.board.capturedPieces = newBoard.capturedPieces;
@@ -167,7 +185,7 @@
             return a.kind===b.kind && a.owner===b.owner && a.promoted===b.promoted;
         }
 
-        function updateCell(x, y, cell, player, flip) {
+        function updateCell(x, y, cell, flip) {
             const r = flip ? 8-y : y;
             const c = flip ? 8-x : x;
             const table = document.getElementById('board');
@@ -179,7 +197,7 @@
                 const span = document.createElement('span');
                 span.className = 'piece';
                 if (cell.promoted) span.classList.add('promoted');
-                if (cell.owner !== player) span.classList.add('opponent');
+                if (cell.owner !== myPlayer) span.classList.add('opponent');
                 span.textContent = (cell.promoted?'成':'') + KANJI[cell.kind];
                 td.appendChild(span);
             }
@@ -188,14 +206,22 @@
         }
 
         function startPolling() {
+            loadGameState();
             state.pollingId = setInterval(() => {
                 if (!state.loading && !state.interacting) {
                     const now = Date.now();
                     const fullRender = (now - state.lastFullRender) > 5000;
-                    loadBoard({preserve:true, diff:!fullRender});
+                    loadGameState({preserve:true, diff:!fullRender});
                     if (fullRender) state.lastFullRender = now;
                 }
             }, 500);
+        }
+
+        function stopPolling() {
+            if (state.pollingId) {
+                clearInterval(state.pollingId);
+                state.pollingId = null;
+            }
         }
 
         function clearSelection() {
@@ -250,8 +276,7 @@
 
         function render() {
             if (!state.board) return;
-            const player = getPlayer();
-            const flip = player==='gote';
+            const flip = myPlayer==='gote';
             const table = document.getElementById('board');
             table.innerHTML = '';
 
@@ -268,7 +293,7 @@
                         const span = document.createElement('span');
                         span.className = 'piece';
                         if (cell.promoted) span.classList.add('promoted');
-                        if (cell.owner !== player) span.classList.add('opponent');
+                        if (cell.owner !== myPlayer) span.classList.add('opponent');
                         span.textContent = (cell.promoted?'成':'') + KANJI[cell.kind];
                         td.appendChild(span);
                     }
@@ -284,9 +309,8 @@
         }
 
         function renderCaptured() {
-            const player = getPlayer();
-            const leftOwner = player==='sente' ? 'gote' : 'sente';
-            const rightOwner = player;
+            const leftOwner = myPlayer==='sente' ? 'gote' : 'sente';
+            const rightOwner = myPlayer;
             document.getElementById('left-label').textContent = leftOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
             document.getElementById('right-label').textContent = rightOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
             [['left', leftOwner], ['right', rightOwner]].forEach(([side, owner]) => {
@@ -306,7 +330,8 @@
         }
 
         function onCaptured(owner, kind) {
-            if (owner !== getPlayer()) { setStatus('Not your piece'); return; }
+            if (isSpectator) return;
+            if (owner !== myPlayer) { setStatus('Not your piece'); return; }
             if (state.selectedDrop?.kind===kind) { clearSelection(); render(); return; }
             clearSelection();
             state.selectedDrop = {owner,kind};
@@ -317,7 +342,7 @@
         }
 
         function onCell(x, y) {
-            const player = getPlayer();
+            if (isSpectator) return;
             const cell = state.board.cells[y][x];
 
             if (state.selectedDrop) {
@@ -328,7 +353,7 @@
 
             if (!state.selected) {
                 if (!cell) return;
-                if (cell.owner !== player) { setStatus('Not your piece'); return; }
+                if (cell.owner !== myPlayer) { setStatus('Not your piece'); return; }
                 state.selected = {x,y};
                 state.interacting = true;
                 state.targets = computeTargets(y,x,cell);
@@ -387,50 +412,40 @@
         async function sendMove(from, to, promoting) {
             state.interacting = true;
             try {
-                const res = await fetch('/move', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({player:getPlayer(),fromX:from.x,fromY:from.y,toX:to.x,toY:to.y,promoting})
+                const res = await fetch(`/game/${gameId}/move`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({fromX:from.x,fromY:from.y,toX:to.x,toY:to.y,promoting})
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                state.board = data.board;
                 clearSelection();
-                render();
-                if (data.isCheckmate) {
-                    setStatus('詰み！ ' + data.winner + ' の勝ち！');
-                } else if (data.isCheck) {
-                    setStatus('Turn: '+data.currentTurn + ' 王手！');
-                } else {
-                    setStatus('Turn: '+data.currentTurn);
-                }
-            } catch(e) { setStatus(e.message); }
+                loadGameState();
+            } catch(e) { 
+                setStatus('Error: ' + e.message);
+                state.interacting = false;
+            }
         }
 
         async function sendDrop(kind, x, y) {
             state.interacting = true;
             try {
-                const res = await fetch('/move', {
-                    method:'POST', headers:{'Content-Type':'application/json'},
-                    body: JSON.stringify({player:getPlayer(),fromX:null,fromY:null,toX:x,toY:y,pieceKind:kind,promoting:false})
+                const res = await fetch(`/game/${gameId}/move`, {
+                    method:'POST', 
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({fromX:null,fromY:null,toX:x,toY:y,pieceKind:kind,promoting:false})
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error);
-                state.board = data.board;
                 clearSelection();
-                render();
-                if (data.isCheckmate) {
-                    setStatus('詰み！ ' + data.winner + ' の勝ち！');
-                } else if (data.isCheck) {
-                    setStatus('Turn: '+data.currentTurn + ' 王手！');
-                } else {
-                    setStatus('Turn: '+data.currentTurn);
-                }
-            } catch(e) { setStatus(e.message); }
+                loadGameState();
+            } catch(e) { 
+                setStatus('Error: ' + e.message);
+                state.interacting = false;
+            }
         }
 
-        document.getElementById('refreshBtn').onclick = () => loadBoard();
         document.getElementById('cancelBtn').onclick = () => { clearSelection(); render(); };
-        document.getElementById('player').onchange = render;
         document.getElementById('promoteYes').onclick = () => {
             if (state.pendingMove) {
                 const {from, to} = state.pendingMove;
@@ -445,7 +460,7 @@
                 sendMove(from, to, false);
             }
         };
-        loadBoard();
+        
         startPolling();
     </script>
 </body>
