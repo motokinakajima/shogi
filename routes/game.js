@@ -13,6 +13,7 @@ router.get('/:gameId', auth, async function(req, res) {
     }
 
     res.render('game', { 
+        layout: false,
         gameId: req.params.gameId,
         userId: req.userId,
         senteId: game.senteId,

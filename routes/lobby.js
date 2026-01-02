@@ -14,7 +14,10 @@ router.get('/', auth, async function(req, res) {
         .single();
     
     res.render('lobby', { 
-        title: 'Lobby',
+        layout: 'layout-auth',
+        title: 'ロビー',
+        currentPage: 'lobby',
+        userName: user?.display_name || 'プレイヤー',
         currentUserId: userId,
         currentUserName: user?.display_name || 'User'
     });

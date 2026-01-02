@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lobby</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 6px 10px;
+        }
+
+        .challenge-btn {
+            padding: 4px 12px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .challenge-btn:hover {
+            background-color: #45a049;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .modal-btn {
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .accept-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .decline-btn {
+            background-color: #f44336;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Lobby</h1>
+    <h2>Online users</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>Display Name</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="online-users"></tbody>
+    </table>
+
+    <div id="challenge-modal" class="modal">
+        <div class="modal-content">
+            <h3>Challenge Received!</h3>
+            <p id="challenger-name"></p>
+            <div id="challenge-queue"></div>
+            <button class="modal-btn accept-btn" onclick="acceptCurrentChallenge()">Accept</button>
+            <button class="modal-btn decline-btn" onclick="declineCurrentChallenge()">Decline</button>
+        </div>
+    </div>
+
+    <div id="waiting-modal" class="modal">
+        <div class="modal-content">
+            <h3>Pending Challenges</h3>
+            <div id="pending-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const currentUserId = '<%= currentUserId %>';
+        const currentUserName = '<%= currentUserName %>';
+        
+        const ws = new WebSocket('ws://localhost:3000/ws');
+        const tbody = document.getElementById('online-users');
+        const modal = document.getElementById('challenge-modal');
+        const waitingModal = document.getElementById('waiting-modal');
+        const challengerNameEl = document.getElementById('challenger-name');
+        const challengeQueueEl = document.getElementById('challenge-queue');
+        const pendingListEl = document.getElementById('pending-list');
+
+        const onlineUserIds = new Set();
+        const userCache = new Map();
+        const incomingChallenges = [];
+        const outgoingChallenges = new Map();
+
+        ws.onopen = () => {
+            console.log('connected');
+        };
+
+        ws.onmessage = async (e) => {
+            const msg = JSON.parse(e.data);
+
+            // Handle lobby updates
+            if (msg.type === 'lobby:update') {
+                const newIds = new Set(msg.users);
+
+                // 差分計算
+                const added = [...newIds].filter(id => !onlineUserIds.has(id));
+                const removed = [...onlineUserIds].filter(id => !newIds.has(id));
+
+                // 状態更新
+                onlineUserIds.clear();
+                newIds.forEach(id => onlineUserIds.add(id));
+
+                // 追加分だけ fetch
+                if (added.length > 0) {
+                    const res = await fetch('/api/users/by-ids', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ids: added })
+                    });
+
+                    const users = await res.json();
+                    for (const user of users) {
+                        userCache.set(user.id, user);
+                    }
+                }
+
+                // 削除分を cache から除去
+                removed.forEach(id => userCache.delete(id));
+
+                renderTable();
+            }
+
+            if (msg.type === 'challenge:received') {
+                incomingChallenges.push({
+                    challengeId: msg.challengeId,
+                    fromUserId: msg.fromUserId,
+                    fromDisplayName: msg.fromDisplayName
+                });
+                updateChallengeModal();
+            }
+
+            if (msg.type === 'challenge:sent') {
+                const targetUser = userCache.get(msg.targetUserId);
+                outgoingChallenges.set(msg.challengeId, {
+                    targetUserId: msg.targetUserId,
+                    targetName: targetUser?.display_name || 'Unknown'
+                });
+                updateWaitingModal();
+            }
+
+            if (msg.type === 'game:start') {
+                window.location.href = `/game/${msg.gameId}`;
+            }
+
+            if (msg.type === 'challenge:declined') {
+                outgoingChallenges.delete(msg.challengeId);
+                updateWaitingModal();
+            }
+
+            if (msg.type === 'challenge:cancelled') {
+                const index = incomingChallenges.findIndex(c => c.challengeId === msg.challengeId);
+                if (index !== -1) {
+                    incomingChallenges.splice(index, 1);
+                    updateChallengeModal();
+                }
+            }
+
+            if (msg.type === 'challenge:expired') {
+                outgoingChallenges.delete(msg.challengeId);
+                const index = incomingChallenges.findIndex(c => c.challengeId === msg.challengeId);
+                if (index !== -1) incomingChallenges.splice(index, 1);
+                updateWaitingModal();
+                updateChallengeModal();
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('disconnected');
+        };
+
+        function renderTable() {
+            tbody.innerHTML = '';
+
+            for (const id of onlineUserIds) {
+                const user = userCache.get(id);
+
+                const tr = document.createElement('tr');
+
+                const tdId = document.createElement('td');
+                tdId.textContent = id;
+
+                const tdName = document.createElement('td');
+                tdName.textContent = user ? user.display_name : '(loading...)';
+
+                const tdAction = document.createElement('td');
+                // Don't show challenge button for current user
+                if (id !== currentUserId) {
+                    const challengeBtn = document.createElement('button');
+                    challengeBtn.className = 'challenge-btn';
+                    challengeBtn.textContent = 'Challenge';
+                    challengeBtn.onclick = () => sendChallenge(id);
+                    tdAction.appendChild(challengeBtn);
+                } else {
+                    tdAction.textContent = '(You)';
+                }
+
+                tr.appendChild(tdId);
+                tr.appendChild(tdName);
+                tr.appendChild(tdAction);
+                tbody.appendChild(tr);
+            }
+        }
+
+        function sendChallenge(targetUserId) {
+            ws.send(JSON.stringify({
+                type: 'challenge:send',
+                targetUserId
+            }));
+        }
+
+        function acceptCurrentChallenge() {
+            if (incomingChallenges.length === 0) return;
+            const challenge = incomingChallenges.shift();
+            ws.send(JSON.stringify({
+                type: 'challenge:accept',
+                challengeId: challenge.challengeId
+            }));
+            updateChallengeModal();
+        }
+
+        function declineCurrentChallenge() {
+            if (incomingChallenges.length === 0) return;
+            const challenge = incomingChallenges.shift();
+            ws.send(JSON.stringify({
+                type: 'challenge:decline',
+                challengeId: challenge.challengeId
+            }));
+            updateChallengeModal();
+        }
+
+        function cancelOutgoingChallenge(challengeId) {
+            ws.send(JSON.stringify({
+                type: 'challenge:cancel',
+                challengeId
+            }));
+            outgoingChallenges.delete(challengeId);
+            updateWaitingModal();
+        }
+
+        function updateChallengeModal() {
+            if (incomingChallenges.length === 0) {
+                modal.style.display = 'none';
+                return;
+            }
+
+            const current = incomingChallenges[0];
+            challengerNameEl.textContent = `${current.fromDisplayName} challenges you!`;
+            
+            if (incomingChallenges.length > 1) {
+                challengeQueueEl.textContent = `(+${incomingChallenges.length - 1} more)`;
+            } else {
+                challengeQueueEl.textContent = '';
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function updateWaitingModal() {
+            if (outgoingChallenges.size === 0) {
+                waitingModal.style.display = 'none';
+                return;
+            }
+
+            pendingListEl.innerHTML = '';
+            for (const [challengeId, challenge] of outgoingChallenges.entries()) {
+                const div = document.createElement('div');
+                div.style.marginBottom = '10px';
+                div.innerHTML = `
+                    <span>Waiting for ${challenge.targetName}...</span>
+                    <button class="modal-btn decline-btn" onclick="cancelOutgoingChallenge('${challengeId}')">Cancel</button>
+                `;
+                pendingListEl.appendChild(div);
+            }
+            
+            waitingModal.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>

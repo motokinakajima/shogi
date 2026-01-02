@@ -1,0 +1,56 @@
+<style>
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+    }
+    
+    table th, table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #ecf0f1;
+    }
+    
+    table th {
+        background: #34495e;
+        color: white;
+        font-weight: 600;
+    }
+    
+    table tr:hover {
+        background: #f8f9fa;
+    }
+</style>
+
+<p style="margin-bottom: 20px; color: #7f8c8d;">
+    過去の対局棋譜を検索・閲覧できます
+</p>
+
+<% if (games.length === 0) { %>
+    <div style="background: white; padding: 40px; text-align: center; border-radius: 8px;">
+        <p style="color: #7f8c8d;">まだ対局記録がありません</p>
+    </div>
+<% } else { %>
+    <table>
+        <thead>
+            <tr>
+                <th>日時</th>
+                <th>先手</th>
+                <th>後手</th>
+                <th>結果</th>
+                <th>終局理由</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% games.forEach(game => { %>
+                <tr>
+                    <td><%= new Date(game.created_at).toLocaleString('ja-JP') %></td>
+                    <td><%= game.sente?.display_name || '不明' %></td>
+                    <td><%= game.gote?.display_name || '不明' %></td>
+                    <td><%= game.winner === 'sente' ? '先手勝ち' : '後手勝ち' %></td>
+                    <td><%= game.finish_reason === 'checkmate' ? '詰み' : game.finish_reason %></td>
+                </tr>
+            <% }) %>
+        </tbody>
+    </table>
+<% } %>

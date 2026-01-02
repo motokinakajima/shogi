@@ -6,11 +6,11 @@ import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
 
 router.get('/', async function (_req, res) {
-    res.render('login', { title: 'Login' });
+    res.render('login', { layout: false, title: 'Login' });
 });
 
 router.get('/register', async function (_req, res) {
-    res.render('register', { title: 'Register' });
+    res.render('register', { layout: false, title: 'Register' });
 });
 
 router.get('/school', async function(_req, res) {
@@ -20,11 +20,11 @@ router.get('/school', async function(_req, res) {
     if (fetchError) {
         return res.status(500).json({ error: 'Failed to fetch schools' });
     }
-    res.render('school-login', { title: 'School Login', schools: data });
+    res.render('school-login', { layout: false, title: 'School Login', schools: data });
 });
 
 router.get('/school-register', auth.adminAuth, async function(_req, res) {
-    res.render('school-register');
+    res.render('school-register', { layout: false });
 });
 
 router.get('/school-password-reset', auth.adminAuth, async function(_req, res) {
@@ -34,7 +34,7 @@ router.get('/school-password-reset', auth.adminAuth, async function(_req, res) {
     if (fetchError) {
         return res.status(500).json({ error: 'Failed to fetch schools' });
     }
-    res.render('school-password-reset', { title: 'School Password Reset', schools: data });
+    res.render('school-password-reset', { layout: false, title: 'School Password Reset', schools: data });
 });
 
 router.get('/auth-test', auth, async function (req, res) {
@@ -65,12 +65,12 @@ router.post('/', async function (req, res) {
     );
 
     res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.json({ message: 'Login successful' });
+    res.redirect('/lobby');
 });
 
 router.post('/logout', function (_req, res) {
     res.clearCookie('userToken');
-    res.json({ message: 'Logout successful' });
+    res.redirect('/login');
 });
 
 router.post('/register', async function (req, res) {
@@ -90,7 +90,14 @@ router.post('/register', async function (req, res) {
     if (insertError) {
         return res.status(400).json({ error: 'Registration failed' });
     }
-    res.json({ message: 'Registration successful' });
+    
+    const token = jwt.sign(
+        { userId: (await supabase.from('users').select('id').eq('email_address', email).single()).data.id },
+        process.env.JWT_SECRET,
+        { expiresIn: '7d' }
+    );
+    res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
+    res.redirect('/lobby');
 });
 
 router.post('/school', async function (req, res) {
@@ -112,7 +119,7 @@ router.post('/school', async function (req, res) {
 
     const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.cookie('schoolToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.json({ message: 'School login successful' });
+    res.redirect('/login/school-register');
 });
 
 router.post('/school-register', auth.adminAuth, async function (req, res) {

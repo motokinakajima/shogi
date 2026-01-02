@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import expressLayouts from 'express-ejs-layouts';
 
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
@@ -13,6 +14,9 @@ import loginRouter from './routes/login.js';
 import lobbyRouter from './routes/lobby.js';
 import apiRouter from './routes/api.js';
 import gameRouter from './routes/game.js';
+import mypageRouter from './routes/mypage.js';
+import databaseRouter from './routes/database.js';
+import rankingsRouter from './routes/rankings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -22,6 +26,8 @@ const app = express();
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
+app.use(expressLayouts);
+app.set('layout', false); // Disable layout by default
 
 app.use(logger('dev'));
 app.use(express.json());
@@ -35,6 +41,9 @@ app.use('/login', loginRouter);
 app.use('/lobby', lobbyRouter);
 app.use('/api', apiRouter);
 app.use('/game', gameRouter);
+app.use('/mypage', mypageRouter);
+app.use('/database', databaseRouter);
+app.use('/rankings', rankingsRouter);
 
 // catch 404
 app.use((req, res, next) => {

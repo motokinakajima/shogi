@@ -1,12 +1,21 @@
 import express from 'express';
 var router = express.Router();
 import { supabase } from '../lib/supabase.js';
+import jwt from 'jsonwebtoken';
 
 /* GET home page. */
 router.get('/', async function (req, res, next) {
-    const {data, error: selectError} = await supabase.from('users').select('*');
-
-    res.render('index', { title: 'Express' });
+    const token = req.cookies?.userToken;
+    if (token) {
+        try {
+            jwt.verify(token, process.env.JWT_SECRET);
+            return res.redirect('/lobby');
+        } catch (e) {
+            // Invalid token, continue to show home page
+        }
+    }
+    
+    res.render('index', { layout: false, title: 'Express' });
 });
 
 /*

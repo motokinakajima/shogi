@@ -1,0 +1,29 @@
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h2>将棋オンライン</h2>
+        <div class="user-info">
+            <%= userName || 'プレイヤー' %>
+        </div>
+    </div>
+    
+    <nav class="sidebar-nav">
+        <a href="/lobby" class="<%= currentPage === 'lobby' ? 'active' : '' %>">
+            🎮 ロビー
+        </a>
+        <a href="/mypage" class="<%= currentPage === 'mypage' ? 'active' : '' %>">
+            👤 マイページ
+        </a>
+        <a href="/database" class="<%= currentPage === 'database' ? 'active' : '' %>">
+            📊 棋譜データベース
+        </a>
+        <a href="/rankings" class="<%= currentPage === 'rankings' ? 'active' : '' %>">
+            🏆 ランキング
+        </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+        <form action="/login/logout" method="POST">
+            <button type="submit" class="logout-btn">ログアウト</button>
+        </form>
+    </div>
+</aside>
