@@ -4,6 +4,7 @@ import auth from '../lib/middlewares.js';
 import { getGame } from '../lib/gameManager.js';
 import { supabase } from '../lib/supabase.js';
 import { Player } from '../domain/Player.js';
+import { Rating } from '../domain/Rating.js';
 
 router.get('/:gameId', auth, async function(req, res) {
     const game = getGame(req.params.gameId);
@@ -68,11 +69,36 @@ router.post('/:gameId/move', auth, async function(req, res) {
         }
 
         if (game.isFinished) {
-            await supabase.from('games').update({
-                status: 'finished',
-                winner_id: game.winner === Player.SENTE ? game.senteId : game.goteId,
-                finished_at: new Date().toISOString()
-            }).eq('id', game.id);
+            const winnerId = game.winner === Player.SENTE ? game.senteId : game.goteId;
+            const loserId = game.winner === Player.SENTE ? game.goteId : game.senteId;
+
+            const { data: winnerData } = await supabase
+                .from('users').select('rating').eq('id', winnerId).single();
+            const { data: loserData } = await supabase
+                .from('users').select('rating').eq('id', loserId).single();
+
+            const winnerRating = winnerData?.rating ?? Rating.DEFAULT_RATING;
+            const loserRating = loserData?.rating ?? Rating.DEFAULT_RATING;
+            const { winnerNewRating, loserNewRating } = Rating.calculateMatch(winnerRating, loserRating);
+
+            const { data: gameRecord, error: gameError } = await supabase.from('games').insert({
+                sente_id: game.senteId,
+                gote_id: game.goteId,
+                winner: game.winner,
+                finish_reason: 'checkmate'
+            }).select('id').single();
+
+            if (gameError) {
+                console.error('Failed to save game:', gameError);
+            } else {
+                await supabase.from('rating_history').insert([
+                    { user_id: winnerId, game_id: gameRecord.id, rating_before: winnerRating, rating_after: winnerNewRating },
+                    { user_id: loserId, game_id: gameRecord.id, rating_before: loserRating, rating_after: loserNewRating }
+                ]);
+
+                await supabase.from('users').update({ rating: winnerNewRating }).eq('id', winnerId);
+                await supabase.from('users').update({ rating: loserNewRating }).eq('id', loserId);
+            }
         }
 
         return res.json({
