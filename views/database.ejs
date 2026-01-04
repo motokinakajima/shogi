@@ -1,37 +1,15 @@
-<style>
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: white;
-    }
-    
-    table th, table td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid #ecf0f1;
-    }
-    
-    table th {
-        background: #34495e;
-        color: white;
-        font-weight: 600;
-    }
-    
-    table tr:hover {
-        background: #f8f9fa;
-    }
-</style>
+<div class="page">
+    <div class="description">
+        <h1>棋譜データベース</h1>
+        <p>過去の対局棋譜を検索・閲覧できます</p>
+    </div>
 
-<p style="margin-bottom: 20px; color: #7f8c8d;">
-    過去の対局棋譜を検索・閲覧できます
-</p>
-
-<% if (games.length === 0) { %>
-    <div style="background: white; padding: 40px; text-align: center; border-radius: 8px;">
+    <% if (games.length === 0) { %>
+    <div class="section" style="text-align: center;">
         <p style="color: #7f8c8d;">まだ対局記録がありません</p>
     </div>
 <% } else { %>
-    <table>
+    <table class="list">
         <thead>
             <tr>
                 <th>日時</th>
@@ -54,3 +32,4 @@
         </tbody>
     </table>
 <% } %>
+</div>

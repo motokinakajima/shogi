@@ -2,8 +2,11 @@ import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
 import { supabase } from '../lib/supabase.js';
+import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {
+    const sidebarData = await getUserSidebarData(req.userId);
+    
     const { data: userData } = await supabase
         .from('users')
         .select('display_name, rating, email_address')
@@ -28,7 +31,7 @@ router.get('/', auth, async function(req, res) {
         layout: 'layout-auth',
         title: 'マイページ',
         currentPage: 'mypage',
-        userName: userData?.display_name || 'プレイヤー',
+        ...sidebarData,
         user: userData,
         gameHistory: gameHistory || [],
         ratingHistory: ratingHistory || []

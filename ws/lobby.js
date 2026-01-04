@@ -9,6 +9,7 @@ import { randomUUID } from 'crypto';
 import { createGame } from '../lib/gameManager.js';
 
 const challenges = new Map();
+const userTimeSettings = new Map(); // userId -> timeConfig
 const CHALLENGE_EXPIRY_MS = 60000;
 
 function broadcastOnlineUsers() {
@@ -55,9 +56,38 @@ setInterval(cleanupExpiredChallenges, 10000);
 export function joinLobby(ws, userId, displayName) {
     addOnlineUser(userId, ws);
     broadcastOnlineUsers();
+    
+    // 既存のユーザーの時間設定を新規接続者に送信
+    for (const [existingUserId, timeConfig] of userTimeSettings.entries()) {
+        ws.send(JSON.stringify({
+            type: 'settings:update',
+            userId: existingUserId,
+            timeConfig: timeConfig
+        }));
+    }
+    
+    // メッセージハンドラ登録完了を通知
+    ws.send(JSON.stringify({
+        type: 'lobby:ready'
+    }));
 
     ws.on('message', (raw) => {
         const msg = JSON.parse(raw);
+        
+        if (msg.type === 'settings:update') {
+            userTimeSettings.set(userId, msg.timeConfig);
+            
+            // 全員にブロードキャスト
+            for (const socket of getOnlineSockets()) {
+                if (socket.readyState === socket.OPEN) {
+                    socket.send(JSON.stringify({
+                        type: 'settings:update',
+                        userId: userId,
+                        timeConfig: msg.timeConfig
+                    }));
+                }
+            }
+        }
 
         if (msg.type === 'challenge:send') {
             const targetWs = getSocketByUserId(msg.targetUserId);
@@ -68,6 +98,7 @@ export function joinLobby(ws, userId, displayName) {
                 fromUserId: userId,
                 fromDisplayName: displayName,
                 toUserId: msg.targetUserId,
+                timeConfig: msg.timeConfig, // 時間設定を保存
                 timestamp: Date.now()
             });
 
@@ -92,7 +123,8 @@ export function joinLobby(ws, userId, displayName) {
             const challengerWs = getSocketByUserId(challenge.fromUserId);
             if (!challengerWs) return;
 
-            const game = createGame(challenge.fromUserId, userId);
+            // チャレンジに保存された時間設定を使用
+            const game = createGame(challenge.fromUserId, userId, challenge.timeConfig);
             const gameId = game.id;
 
             challengerWs.send(JSON.stringify({
@@ -159,6 +191,7 @@ export function joinLobby(ws, userId, displayName) {
             }
         }
 
+        userTimeSettings.delete(userId); // 時間設定も削除
         removeOnlineUser(userId);
         broadcastOnlineUsers();
     });

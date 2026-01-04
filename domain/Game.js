@@ -3,9 +3,10 @@ import { Player } from "./Player.js";
 import { Kifu, Move } from "./Kifu.js";
 import { Piece } from "./Piece.js";
 import { PieceKind } from "./PieceKind.js";
+import TimeManager from "./TimeManager.js";
 
 export class Game {
-    constructor(id, senteId, goteId) {
+    constructor(id, senteId, goteId, timeConfig = {}) {
         this.id = id;
         this.senteId = senteId;
         this.goteId = goteId;
@@ -14,6 +15,8 @@ export class Game {
         this.currentTurn = Player.SENTE;
         this.isFinished = false;
         this.winner = null;
+        this.timeManager = new TimeManager(timeConfig);
+        this.timeManager.startTurn(Player.SENTE);
     }
 
     get getId() {
@@ -31,6 +34,7 @@ export class Game {
         if (move.player !== this.currentTurn) {
             throw new Error("Not your turn");
         }
+        
         this.validateMove(move);
         
         const backup = this.createBoardBackup();
@@ -56,7 +60,18 @@ export class Game {
         this.postMoveUpdates(move, isCheck, isCheckmate);
 
         this.kifu.addMove(move);
+        
+        // 時間チェック（move完了後、ターン切り替え前）
+        const timeoutResult = this.timeManager.consumeTime();
+        if (timeoutResult === 'timeout') {
+            this.isFinished = true;
+            this.winner = opponent; // 時間切れしたのは現在のプレイヤー、勝者は相手
+            this.finishReason = 'timeout';
+            throw new Error("Time out");
+        }
+        
         this.currentTurn = opponent;
+        this.timeManager.startTurn(opponent);
         
         return { isCheck, isCheckmate };
     }

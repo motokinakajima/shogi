@@ -1,112 +1,36 @@
-<style>
-    table {
-        border-collapse: collapse;
-        margin-top: 1em;
-        background: white;
-        width: 100%;
-    }
+<div class="page">
+    <div class="description">
+        <h1>オンラインユーザー</h1>
+        <p>対戦したいユーザーを選んで申し込みましょう</p>
+    </div>
 
-    th, td {
-        border: 1px solid #ccc;
-        padding: 10px;
-        text-align: left;
-    }
+    <table class="list">
+        <thead>
+            <tr>
+                <th class="name">表示名</th>
+                <th class="school">学校</th>
+                <th class="grade">学年</th>
+                <th>棋力</th>
+                <th class="rate">レート</th>
+                <th class="requestType">受付設定</th>
+                <th>アクション</th>
+            </tr>
+        </thead>
+        <tbody id="online-users"></tbody>
+    </table>
 
-    th {
-        background: #34495e;
-        color: white;
-    }
-
-    .challenge-btn {
-        padding: 6px 16px;
-        cursor: pointer;
-        background-color: #3498db;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-
-    .challenge-btn:hover {
-        background-color: #2980b9;
-    }
-
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.4);
-    }
-
-    .modal-content {
-        background-color: #fefefe;
-        margin: 15% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 400px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-
-    .modal-content h3 {
-        margin: 0 0 15px 0;
-        color: #2c3e50;
-    }
-
-    .modal-buttons {
-        margin-top: 15px;
-        display: flex;
-        gap: 10px;
-    }
-
-    .modal-btn {
-        padding: 8px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    .accept-btn {
-        background-color: #27ae60;
-        color: white;
-    }
-
-    .accept-btn:hover {
-        background-color: #229954;
-    }
-
-    .decline-btn {
-        background-color: #e74c3c;
-        color: white;
-    }
-
-    .decline-btn:hover {
-        background-color: #c0392b;
-    }
-    
-    #challenge-queue {
-        color: #7f8c8d;
-        margin-top: 5px;
-        font-size: 14px;
-    }
-</style>
-
-<h2>オンラインユーザー</h2>
-<table>
-    <thead>
-        <tr>
-            <th>ユーザーID</th>
-            <th>表示名</th>
-            <th>アクション</th>
-        </tr>
-    </thead>
-    <tbody id="online-users"></tbody>
-</table>
+    <div class="actions">
+        <div class="receiving">
+            <h3>受け付ける対局の時間設定</h3>
+            <div class="time-presets">
+                <button class="preset-btn" onclick="setMyTimePreset('blitz1')">1+30秒</button>
+                <button class="preset-btn active" onclick="setMyTimePreset('rapid10')">10分切れ負け</button>
+                <button class="preset-btn" onclick="setMyTimePreset('rapid10b30')">10+30秒</button>
+                <button class="preset-btn" onclick="setMyTimePreset('classical30')">30分切れ負け</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="challenge-modal" class="modal">
     <div class="modal-content">
@@ -140,8 +64,17 @@
 
     const onlineUserIds = new Set();
     const userCache = new Map();
+    const userTimeSettings = new Map(); // userId -> timeConfig
     const incomingChallenges = [];
     const outgoingChallenges = new Map();
+    
+    let myTimeConfig = {
+        preset: 'rapid10',
+        mode: 'sudden_death',
+        initialTime: 600000, // 10分
+        byoyomiTime: 30000,
+        fischerIncrement: 0
+    };
 
     ws.onopen = () => {
         console.log('connected');
@@ -149,6 +82,14 @@
 
     ws.onmessage = async (e) => {
         const msg = JSON.parse(e.data);
+        
+        if (msg.type === 'lobby:ready') {
+            // サーバー準備完了、自分の時間設定を送信
+            ws.send(JSON.stringify({
+                type: 'settings:update',
+                timeConfig: myTimeConfig
+            }));
+        }
 
         if (msg.type === 'lobby:update') {
             const newIds = new Set(msg.users);
@@ -170,7 +111,15 @@
                 }
             }
 
-            removed.forEach(id => userCache.delete(id));
+            removed.forEach(id => {
+                userCache.delete(id);
+                userTimeSettings.delete(id);
+            });
+            renderTable();
+        }
+        
+        if (msg.type === 'settings:update') {
+            userTimeSettings.set(msg.userId, msg.timeConfig);
             renderTable();
         }
 
@@ -226,13 +175,33 @@
         tbody.innerHTML = '';
         for (const id of onlineUserIds) {
             const user = userCache.get(id);
+            const timeConfig = userTimeSettings.get(id);
             const tr = document.createElement('tr');
-
-            const tdId = document.createElement('td');
-            tdId.textContent = id.substring(0, 8) + '...';
 
             const tdName = document.createElement('td');
             tdName.textContent = user ? user.display_name : '(loading...)';
+
+            const tdSchool = document.createElement('td');
+            tdSchool.textContent = user?.school_name || '-';
+
+            const tdGrade = document.createElement('td');
+            tdGrade.textContent = user?.grade || '-';
+
+            const tdSkill = document.createElement('td');
+            tdSkill.textContent = user?.skill_level || '-';
+
+            const tdRating = document.createElement('td');
+            tdRating.textContent = user?.rating || '1500';
+            
+            const tdTimeSetting = document.createElement('td');
+            if (timeConfig) {
+                const badge = document.createElement('span');
+                badge.className = 'time-badge';
+                badge.textContent = getTimePresetLabel(timeConfig.preset);
+                tdTimeSetting.appendChild(badge);
+            } else {
+                tdTimeSetting.textContent = '-';
+            }
 
             const tdAction = document.createElement('td');
             if (id !== currentUserId) {
@@ -245,17 +214,53 @@
                 tdAction.textContent = '(あなた)';
             }
 
-            tr.appendChild(tdId);
             tr.appendChild(tdName);
+            tr.appendChild(tdSchool);
+            tr.appendChild(tdGrade);
+            tr.appendChild(tdSkill);
+            tr.appendChild(tdRating);
+            tr.appendChild(tdTimeSetting);
             tr.appendChild(tdAction);
             tbody.appendChild(tr);
         }
     }
+    
+    function getTimePresetLabel(preset) {
+        const labels = {
+            'blitz1': '1+30秒',
+            'rapid10': '10分切れ負け',
+            'rapid10b30': '10+30秒',
+            'classical30': '30分切れ負け'
+        };
+        return labels[preset] || preset;
+    }
 
     function sendChallenge(targetUserId) {
+        const targetTimeConfig = userTimeSettings.get(targetUserId);
         ws.send(JSON.stringify({
             type: 'challenge:send',
-            targetUserId
+            targetUserId,
+            timeConfig: targetTimeConfig || myTimeConfig
+        }));
+    }
+    
+    function setMyTimePreset(preset) {
+        document.querySelectorAll('.my-settings .preset-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+        
+        const presets = {
+            'blitz1': { preset: 'blitz1', mode: 'byoyomi', initialTime: 60000, byoyomiTime: 30000, fischerIncrement: 0 },
+            'rapid10': { preset: 'rapid10', mode: 'sudden_death', initialTime: 600000, byoyomiTime: 30000, fischerIncrement: 0 },
+            'rapid10b30': { preset: 'rapid10b30', mode: 'byoyomi', initialTime: 600000, byoyomiTime: 30000, fischerIncrement: 0 },
+            'classical30': { preset: 'classical30', mode: 'sudden_death', initialTime: 1800000, byoyomiTime: 30000, fischerIncrement: 0 }
+        };
+        
+        myTimeConfig = presets[preset] || myTimeConfig;
+        
+        // サーバーに更新を送信
+        ws.send(JSON.stringify({
+            type: 'settings:update',
+            timeConfig: myTimeConfig
         }));
     }
 
@@ -315,7 +320,6 @@
         pendingListEl.innerHTML = '';
         for (const [challengeId, challenge] of outgoingChallenges.entries()) {
             const div = document.createElement('div');
-            div.style.marginBottom = '10px';
             div.innerHTML = `
                 <span>${challenge.targetName} に申込中...</span>
                 <button class="modal-btn decline-btn" onclick="cancelOutgoingChallenge('${challengeId}')">キャンセル</button>

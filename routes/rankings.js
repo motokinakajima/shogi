@@ -2,13 +2,10 @@ import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
 import { supabase } from '../lib/supabase.js';
+import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {
-    const { data: userData } = await supabase
-        .from('users')
-        .select('display_name')
-        .eq('id', req.userId)
-        .single();
+    const sidebarData = await getUserSidebarData(req.userId);
     
     const { data: rankings } = await supabase
         .from('users')
@@ -20,7 +17,7 @@ router.get('/', auth, async function(req, res) {
         layout: 'layout-auth',
         title: 'ランキング',
         currentPage: 'rankings',
-        userName: userData?.display_name || 'プレイヤー',
+        ...sidebarData,
         rankings: rankings || []
     });
 });

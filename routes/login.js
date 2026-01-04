@@ -119,7 +119,7 @@ router.post('/school', async function (req, res) {
 
     const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
     res.cookie('schoolToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.redirect('/login/school-register');
+    res.redirect('/school-admin/dashboard');
 });
 
 router.post('/school-register', auth.adminAuth, async function (req, res) {

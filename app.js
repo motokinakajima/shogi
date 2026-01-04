@@ -17,6 +17,7 @@ import gameRouter from './routes/game.js';
 import mypageRouter from './routes/mypage.js';
 import databaseRouter from './routes/database.js';
 import rankingsRouter from './routes/rankings.js';
+import schoolAdminRouter from './routes/school-admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,6 +45,7 @@ app.use('/game', gameRouter);
 app.use('/mypage', mypageRouter);
 app.use('/database', databaseRouter);
 app.use('/rankings', rankingsRouter);
+app.use('/school-admin', schoolAdminRouter);
 
 // catch 404
 app.use((req, res, next) => {

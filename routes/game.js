@@ -27,12 +27,15 @@ router.get('/:gameId/state', auth, async function(req, res) {
         return res.status(404).json({ error: 'Game not found' });
     }
 
+    const timeState = game.timeManager.getState();
+
     return res.json({
         board: game.board.toJson,
         currentTurn: game.currentTurn,
         isFinished: game.isFinished,
         winner: game.winner,
-        moveCount: game.kifu.getMoves().length
+        moveCount: game.kifu.getMoves().length,
+        timeState: timeState
     });
 });
 
@@ -86,7 +89,8 @@ router.post('/:gameId/move', auth, async function(req, res) {
                 sente_id: game.senteId,
                 gote_id: game.goteId,
                 winner: game.winner,
-                finish_reason: 'checkmate'
+                finish_reason: game.finishReason || 'checkmate',
+                time_control: game.timeManager.getTimeControl()
             }).select('id').single();
 
             if (gameError) {

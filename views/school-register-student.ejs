@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新規生徒登録 - <%= schoolName %></title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+    <style>
+        .register-container {
+            max-width: 600px;
+            margin: 60px auto;
+            padding: 0 24px;
+        }
+        
+        .register-card {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .register-card h1 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+        }
+        
+        .register-card .subtitle {
+            margin: 0 0 32px 0;
+            color: #7f8c8d;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+        
+        .btn-secondary {
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .btn-secondary:hover {
+            background: #bdc3c7;
+        }
+        
+        .error-message {
+            background: #e74c3c;
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <h1>新規生徒登録</h1>
+            <p class="subtitle"><%= schoolName %></p>
+            
+            <div id="error-message" class="error-message"></div>
+            
+            <form id="register-form" method="POST" action="/school-admin/register-student">
+                <div class="form-group">
+                    <label for="display_name">表示名 *</label>
+                    <input type="text" id="display_name" name="display_name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email_address">メールアドレス *</label>
+                    <input type="email" id="email_address" name="email_address" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">初期パスワード *</label>
+                    <input type="password" id="password" name="password" required minlength="6">
+                    <small style="color: #7f8c8d;">6文字以上</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="grade">学年</label>
+                    <select id="grade" name="grade">
+                        <option value="">選択してください</option>
+                        <option value="小学一年生">小学一年生</option>
+                        <option value="小学二年生">小学二年生</option>
+                        <option value="小学三年生">小学三年生</option>
+                        <option value="小学四年生">小学四年生</option>
+                        <option value="小学五年生">小学五年生</option>
+                        <option value="小学六年生">小学六年生</option>
+                        <option value="中学一年生">中学一年生</option>
+                        <option value="中学二年生">中学二年生</option>
+                        <option value="中学三年生">中学三年生</option>
+                        <option value="高校一年生">高校一年生</option>
+                        <option value="高校二年生">高校二年生</option>
+                        <option value="高校三年生">高校三年生</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="skill_level">棋力</label>
+                    <select id="skill_level" name="skill_level">
+                        <option value="">選択してください</option>
+                        <option value="初心者">初心者</option>
+                        <option value="初級">初級</option>
+                        <option value="中級">中級</option>
+                        <option value="上級">上級</option>
+                        <option value="有段者">有段者</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="gender">性別</label>
+                    <select id="gender" name="gender">
+                        <option value="">選択してください</option>
+                        <option value="男性">男性</option>
+                        <option value="女性">女性</option>
+                        <option value="その他">その他</option>
+                    </select>
+                </div>
+                
+                <div class="form-actions">
+                    <a href="/school-admin/dashboard" class="btn btn-secondary">キャンセル</a>
+                    <button type="submit" class="btn btn-primary">登録</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('register-form');
+        const errorMessage = document.getElementById('error-message');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData);
+            
+            try {
+                const response = await fetch('/school-admin/register-student', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/school-admin/dashboard';
+                } else {
+                    const result = await response.json();
+                    errorMessage.textContent = result.error || '登録に失敗しました';
+                    errorMessage.classList.add('show');
+                }
+            } catch (error) {
+                errorMessage.textContent = 'エラーが発生しました';
+                errorMessage.classList.add('show');
+            }
+        });
+    </script>
+</body>
+</html>

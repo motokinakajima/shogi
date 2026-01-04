@@ -2,13 +2,10 @@ import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
 import { supabase } from '../lib/supabase.js';
+import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {
-    const { data: userData } = await supabase
-        .from('users')
-        .select('display_name')
-        .eq('id', req.userId)
-        .single();
+    const sidebarData = await getUserSidebarData(req.userId);
     
     const { data: games } = await supabase
         .from('games')
@@ -27,7 +24,7 @@ router.get('/', auth, async function(req, res) {
         layout: 'layout-auth',
         title: '棋譜データベース',
         currentPage: 'database',
-        userName: userData?.display_name || 'プレイヤー',
+        ...sidebarData,
         games: games || []
     });
 });
