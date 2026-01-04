@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
+import { generateResetToken, validateResetToken, consumeResetToken } from '../lib/passwordResetManager.js';
 
 router.get('/', async function (_req, res) {
     res.render('login', { layout: false, title: 'Login' });
@@ -11,6 +12,32 @@ router.get('/', async function (_req, res) {
 
 router.get('/register', async function (_req, res) {
     res.render('register', { layout: false, title: 'Register' });
+});
+
+router.get('/forgot-password', async function (_req, res) {
+    res.render('forgot-password', { layout: false, title: 'Forgot Password' });
+});
+
+router.get('/reset-password/:token', async function (req, res) {
+    const { token } = req.params;
+    const result = validateResetToken(token);
+    
+    if (!result.valid) {
+        return res.render('reset-password', { 
+            layout: false, 
+            title: 'Reset Password',
+            error: result.error === 'expired' ? 'トークンの有効期限が切れています' : 'トークンが無効です',
+            token: null
+        });
+    }
+    
+    res.render('reset-password', { 
+        layout: false, 
+        title: 'Reset Password',
+        token,
+        email: result.email,
+        error: null
+    });
 });
 
 router.get('/school', async function(_req, res) {
@@ -98,6 +125,65 @@ router.post('/register', async function (req, res) {
     );
     res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
     res.redirect('/lobby');
+});
+
+router.post('/forgot-password', async function (req, res) {
+    const { email } = req.body;
+    
+    const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email_address', email)
+        .single();
+    
+    if (!user) {
+        return res.json({ 
+            success: true,
+            message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+        });
+    }
+    
+    const result = generateResetToken(user.id, email);
+    
+    if (!result.success) {
+        return res.status(429).json({ error: result.error });
+    }
+    
+    const resetUrl = `http://localhost:3000/login/reset-password/${result.token}`;
+    console.log('\n=== PASSWORD RESET URL ===');
+    console.log(`Email: ${email}`);
+    console.log(`Reset URL: ${resetUrl}`);
+    console.log('========================\n');
+    
+    res.json({ 
+        success: true,
+        message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+    });
+});
+
+router.post('/reset-password/:token', async function (req, res) {
+    const { token } = req.params;
+    const { password } = req.body;
+    
+    const result = consumeResetToken(token);
+    
+    if (!result.valid) {
+        return res.status(400).json({ 
+            error: result.error === 'expired' ? 'トークンの有効期限が切れています' : 'トークンが無効です'
+        });
+    }
+    
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { error: updateError } = await supabase
+        .from('users')
+        .update({ password_hash: passwordHash })
+        .eq('id', result.userId);
+    
+    if (updateError) {
+        return res.status(500).json({ error: 'パスワードの更新に失敗しました' });
+    }
+    
+    res.json({ success: true, message: 'パスワードが正常に更新されました' });
 });
 
 router.post('/school', async function (req, res) {
