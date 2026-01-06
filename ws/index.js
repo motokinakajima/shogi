@@ -1,7 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { joinLobby } from './lobby.js';
 import { authenticate } from '../lib/auth.js';
-import { supabase } from '../lib/supabase.js';
+import { db } from '../lib/db.js';
 
 export function setupWebSocket(server) {
   const wss = new WebSocketServer({ server });
@@ -11,11 +11,11 @@ export function setupWebSocket(server) {
     if (!userId) return ws.close();
 
     // Fetch user's display name from database
-    const { data: user } = await supabase
-      .from('users')
+    const user = await db
+      .selectFrom('users')
       .select('display_name')
-      .eq('id', userId)
-      .single();
+      .where('id', '=', userId)
+      .executeTakeFirst();
 
     const displayName = user?.display_name || 'Unknown';
     joinLobby(ws, userId, displayName);

@@ -2,7 +2,7 @@ import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
 import { getGame } from '../lib/gameManager.js';
-import { supabase } from '../lib/supabase.js';
+import { db } from '../lib/db.js';
 import { Player } from '../domain/Player.js';
 import { Rating } from '../domain/Rating.js';
 
@@ -57,18 +57,19 @@ router.post('/:gameId/move', auth, async function(req, res) {
         const result = game.requestMove(move);
 
         const moveNumber = game.kifu.getMoves().length;
-        const { error: insertError } = await supabase.from('moves').insert({
-            game_id: game.id,
-            move_number: moveNumber,
-            player: game.getPlayerById(req.userId),
-            from_x: fromX,
-            from_y: fromY,
-            to_x: toX,
-            to_y: toY,
-            piece_kind: pieceKind,
-            promoting: promoting
-        });
-        if (insertError) {
+        try {
+            await db.insertInto('moves').values({
+                game_id: game.id,
+                move_number: moveNumber,
+                player: game.getPlayerById(req.userId),
+                from_x: fromX,
+                from_y: fromY,
+                to_x: toX,
+                to_y: toY,
+                piece_kind: pieceKind,
+                promoting: promoting
+            }).execute();
+        } catch (insertError) {
             console.error('Failed to log move:', insertError);
         }
 
@@ -76,33 +77,41 @@ router.post('/:gameId/move', auth, async function(req, res) {
             const winnerId = game.winner === Player.SENTE ? game.senteId : game.goteId;
             const loserId = game.winner === Player.SENTE ? game.goteId : game.senteId;
 
-            const { data: winnerData } = await supabase
-                .from('users').select('rating').eq('id', winnerId).single();
-            const { data: loserData } = await supabase
-                .from('users').select('rating').eq('id', loserId).single();
+            const winnerData = await db
+                .selectFrom('users')
+                .select('rating')
+                .where('id', '=', winnerId)
+                .executeTakeFirst();
+            const loserData = await db
+                .selectFrom('users')
+                .select('rating')
+                .where('id', '=', loserId)
+                .executeTakeFirst();
 
             const winnerRating = winnerData?.rating ?? Rating.DEFAULT_RATING;
             const loserRating = loserData?.rating ?? Rating.DEFAULT_RATING;
             const { winnerNewRating, loserNewRating } = Rating.calculateMatch(winnerRating, loserRating);
 
-            const { data: gameRecord, error: gameError } = await supabase.from('games').insert({
-                sente_id: game.senteId,
-                gote_id: game.goteId,
-                winner: game.winner,
-                finish_reason: game.finishReason || 'checkmate',
-                time_control: game.timeManager.getTimeControl()
-            }).select('id').single();
+            try {
+                const gameRecord = await db.insertInto('games').values({
+                    sente_id: game.senteId,
+                    gote_id: game.goteId,
+                    winner: game.winner,
+                    finish_reason: game.finishReason || 'checkmate',
+                    time_control: game.timeManager.getTimeControl()
+                }).returning('id').executeTakeFirst();
 
-            if (gameError) {
+                if (gameRecord) {
+                    await db.insertInto('rating_history').values([
+                        { user_id: winnerId, game_id: gameRecord.id, rating_before: winnerRating, rating_after: winnerNewRating },
+                        { user_id: loserId, game_id: gameRecord.id, rating_before: loserRating, rating_after: loserNewRating }
+                    ]).execute();
+
+                    await db.updateTable('users').set({ rating: winnerNewRating }).where('id', '=', winnerId).execute();
+                    await db.updateTable('users').set({ rating: loserNewRating }).where('id', '=', loserId).execute();
+                }
+            } catch (gameError) {
                 console.error('Failed to save game:', gameError);
-            } else {
-                await supabase.from('rating_history').insert([
-                    { user_id: winnerId, game_id: gameRecord.id, rating_before: winnerRating, rating_after: winnerNewRating },
-                    { user_id: loserId, game_id: gameRecord.id, rating_before: loserRating, rating_after: loserNewRating }
-                ]);
-
-                await supabase.from('users').update({ rating: winnerNewRating }).eq('id', winnerId);
-                await supabase.from('users').update({ rating: loserNewRating }).eq('id', loserId);
             }
         }
 

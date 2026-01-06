@@ -1,6 +1,6 @@
 import express from 'express';
 var router = express.Router();
-import { supabase } from '../lib/supabase.js';
+import { db } from '../lib/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
@@ -41,13 +41,15 @@ router.get('/reset-password/:token', async function (req, res) {
 });
 
 router.get('/school', async function(_req, res) {
-    const { data, fetchError } = await supabase
-        .from('schools')
-        .select('id, display_name');
-    if (fetchError) {
+    try {
+        const data = await db
+            .selectFrom('schools')
+            .select(['id', 'display_name'])
+            .execute();
+        res.render('school-login', { layout: false, title: 'School Login', schools: data });
+    } catch (error) {
         return res.status(500).json({ error: 'Failed to fetch schools' });
     }
-    res.render('school-login', { layout: false, title: 'School Login', schools: data });
 });
 
 router.get('/school-register', auth.adminAuth, async function(_req, res) {
@@ -55,13 +57,15 @@ router.get('/school-register', auth.adminAuth, async function(_req, res) {
 });
 
 router.get('/school-password-reset', auth.adminAuth, async function(_req, res) {
-    const { data, fetchError } = await supabase
-        .from('schools')
-        .select('id, display_name');
-    if (fetchError) {
+    try {
+        const data = await db
+            .selectFrom('schools')
+            .select(['id', 'display_name'])
+            .execute();
+        res.render('school-password-reset', { layout: false, title: 'School Password Reset', schools: data });
+    } catch (error) {
         return res.status(500).json({ error: 'Failed to fetch schools' });
     }
-    res.render('school-password-reset', { layout: false, title: 'School Password Reset', schools: data });
 });
 
 router.get('/auth-test', auth, async function (req, res) {
@@ -71,28 +75,33 @@ router.get('/auth-test', auth, async function (req, res) {
 router.post('/', async function (req, res) {
     const { email, password } = req.body;
 
-    const { data, error } = await supabase
-        .from('users')
-        .select('id, password_hash, is_admin')
-        .eq('email_address', email)
-        .single();
-    if (error || !data) {
+    try {
+        const data = await db
+            .selectFrom('users')
+            .select(['id', 'password_hash', 'is_admin'])
+            .where('email_address', '=', email)
+            .executeTakeFirst();
+        
+        if (!data) {
+            return res.status(400).json({ error: 'Invalid email or password' });
+        }
+
+        const ok = await bcrypt.compare(password, data.password_hash);
+        if (!ok) {
+            return res.status(400).json({ error: 'Invalid email or password' });
+        }
+
+        const token = jwt.sign(
+            { userId: data.id, isAdmin: data.is_admin },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+
+        res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
+        res.redirect('/lobby');
+    } catch (error) {
         return res.status(400).json({ error: 'Invalid email or password' });
     }
-
-    const ok = await bcrypt.compare(password, data.password_hash);
-    if (!ok) {
-        return res.status(400).json({ error: 'Invalid email or password' });
-    }
-
-    const token = jwt.sign(
-        { userId: data.id, isAdmin: data.is_admin },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-    );
-
-    res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.redirect('/lobby');
 });
 
 router.post('/logout', function (_req, res) {
@@ -103,62 +112,86 @@ router.post('/logout', function (_req, res) {
 router.post('/register', async function (req, res) {
     const { email, username, password } = req.body;
     const passwordHash = await bcrypt.hash(password, 10);
-    const { data: existingUser } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email_address', email);
-    if (existingUser.length > 0) {
-        console.log(existingUser);
-        return res.status(400).json({ error: 'Email address already exists' });
-    }
-    const { error: insertError } = await supabase
-        .from('users')
-        .insert([{ email_address: email, display_name: username, password_hash: passwordHash }]);
-    if (insertError) {
+    
+    try {
+        const existingUser = await db
+            .selectFrom('users')
+            .select('id')
+            .where('email_address', '=', email)
+            .execute();
+        
+        if (existingUser.length > 0) {
+            console.log(existingUser);
+            return res.status(400).json({ error: 'Email address already exists' });
+        }
+        
+        await db
+            .insertInto('users')
+            .values({
+                email_address: email,
+                display_name: username,
+                password_hash: passwordHash
+            })
+            .execute();
+        
+        const newUser = await db
+            .selectFrom('users')
+            .select('id')
+            .where('email_address', '=', email)
+            .executeTakeFirst();
+        
+        const token = jwt.sign(
+            { userId: newUser.id },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
+        res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
+        res.redirect('/lobby');
+    } catch (error) {
+        console.error('Registration error:', error);
         return res.status(400).json({ error: 'Registration failed' });
     }
-    
-    const token = jwt.sign(
-        { userId: (await supabase.from('users').select('id').eq('email_address', email).single()).data.id },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-    );
-    res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.redirect('/lobby');
 });
 
 router.post('/forgot-password', async function (req, res) {
     const { email } = req.body;
     
-    const { data: user } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email_address', email)
-        .single();
-    
-    if (!user) {
-        return res.json({ 
+    try {
+        const user = await db
+            .selectFrom('users')
+            .select('id')
+            .where('email_address', '=', email)
+            .executeTakeFirst();
+        
+        if (!user) {
+            return res.json({ 
+                success: true,
+                message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+            });
+        }
+        
+        const result = generateResetToken(user.id, email);
+        
+        if (!result.success) {
+            return res.status(429).json({ error: result.error });
+        }
+        
+        const resetUrl = `http://localhost:3000/login/reset-password/${result.token}`;
+        console.log('\n=== PASSWORD RESET URL ===');
+        console.log(`Email: ${email}`);
+        console.log(`Reset URL: ${resetUrl}`);
+        console.log('========================\n');
+        
+        res.json({ 
+            success: true,
+            message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+        });
+    } catch (error) {
+        res.json({ 
             success: true,
             message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
         });
     }
-    
-    const result = generateResetToken(user.id, email);
-    
-    if (!result.success) {
-        return res.status(429).json({ error: result.error });
-    }
-    
-    const resetUrl = `http://localhost:3000/login/reset-password/${result.token}`;
-    console.log('\n=== PASSWORD RESET URL ===');
-    console.log(`Email: ${email}`);
-    console.log(`Reset URL: ${resetUrl}`);
-    console.log('========================\n');
-    
-    res.json({ 
-        success: true,
-        message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
-    });
 });
 
 router.post('/reset-password/:token', async function (req, res) {
@@ -173,64 +206,76 @@ router.post('/reset-password/:token', async function (req, res) {
         });
     }
     
-    const passwordHash = await bcrypt.hash(password, 10);
-    const { error: updateError } = await supabase
-        .from('users')
-        .update({ password_hash: passwordHash })
-        .eq('id', result.userId);
-    
-    if (updateError) {
+    try {
+        const passwordHash = await bcrypt.hash(password, 10);
+        await db
+            .updateTable('users')
+            .set({ password_hash: passwordHash })
+            .where('id', '=', result.userId)
+            .execute();
+        
+        res.json({ success: true, message: 'パスワードが正常に更新されました' });
+    } catch (error) {
         return res.status(500).json({ error: 'パスワードの更新に失敗しました' });
     }
-    
-    res.json({ success: true, message: 'パスワードが正常に更新されました' });
 });
 
 router.post('/school', async function (req, res) {
     const { school, password } = req.body;
 
-    const { data:passwordHash, error: fetchError } = await supabase
-        .from('schools')
-        .select('password_hash')
-        .eq('id', school)
-        .single();
-    if (fetchError) {
+    try {
+        const schoolData = await db
+            .selectFrom('schools')
+            .select('password_hash')
+            .where('id', '=', school)
+            .executeTakeFirst();
+        
+        if (!schoolData) {
+            return res.status(400).json({ error: 'Invalid school login credentials' });
+        }
+
+        const ok = await bcrypt.compare(password, schoolData.password_hash);
+        if (!ok) {
+            return res.status(400).json({ error: 'Invalid school login credentials' });
+        }
+
+        const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
+        res.cookie('schoolToken', token, { httpOnly: true, sameSite: 'lax' });
+        res.redirect('/school-admin/dashboard');
+    } catch (error) {
         return res.status(400).json({ error: 'Invalid school login credentials' });
     }
-
-    const ok = await bcrypt.compare(password, passwordHash.password_hash);
-    if (!ok) {
-        return res.status(400).json({ error: 'Invalid school login credentials' });
-    }
-
-    const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.cookie('schoolToken', token, { httpOnly: true, sameSite: 'lax' });
-    res.redirect('/school-admin/dashboard');
 });
 
-router.post('/school-register', auth.adminAuth, async function (req, res) {
+router.post('/school-register', auth.adminAuth,  async function (req, res) {
     const { school, password } = req.body;
     const passwordHash = await bcrypt.hash(password, 10);
-    const { error: insertError } = await supabase
-        .from('schools')
-        .insert([{ display_name: school, password_hash: passwordHash }]);
-    if (insertError) {
+    
+    try {
+        await db
+            .insertInto('schools')
+            .values({ display_name: school, password_hash: passwordHash })
+            .execute();
+        res.json({ message: 'School registration successful' });
+    } catch (error) {
         return res.status(400).json({ error: 'School registration failed' });
     }
-    res.json({ message: 'School registration successful' });
 });
 
 router.post('/school-password-reset', auth.adminAuth, async function (req, res) {
     const { school, password } = req.body;
     const passwordHash = await bcrypt.hash(password, 10);
-    const { error: updateError } = await supabase
-        .from('schools')
-        .update({ password_hash: passwordHash })
-        .eq('id', school);
-    if (updateError) {
+    
+    try {
+        await db
+            .updateTable('schools')
+            .set({ password_hash: passwordHash })
+            .where('id', '=', school)
+            .execute();
+        res.json({ message: 'Password reset successful' });
+    } catch (error) {
         return res.status(400).json({ error: 'Password reset failed' });
     }
-    res.json({ message: 'Password reset successful' });
 });
 
 export default router;

@@ -1,7 +1,6 @@
 import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
-import { supabase } from '../lib/supabase.js';
 import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {

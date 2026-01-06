@@ -12,10 +12,10 @@
 | password_hash | TEXT | NOT NULL | ハッシュ化されたパスワード |
 | rating | INTEGER | NOT NULL, default: 1500 | レーティング |
 | is_admin | BOOLEAN | nullable | 管理者フラグ |
-| school_id | UUID | NOT NULL, FK → schools.id | 所属学校ID |
-| grade | TEXT | NOT NULL | 学年（例：小1、中2、高3） |
-| skill_level | TEXT | NOT NULL | 棋力（例：初心者、初級、中級、上級、有段者） |
-| gender | TEXT | NOT NULL | 性別 |
+| school_id | UUID | nullable, FK → schools.id | 所属学校ID |
+| grade | TEXT | nullable | 学年（例：小1、中2、高3） |
+| skill_level | TEXT | nullable | 棋力（例：初心者、初級、中級、上級、有段者） |
+| gender | TEXT | nullable | 性別 |
 
 ## schools
 学校情報

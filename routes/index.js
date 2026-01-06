@@ -1,6 +1,5 @@
 import express from 'express';
 var router = express.Router();
-import { supabase } from '../lib/supabase.js';
 import jwt from 'jsonwebtoken';
 
 /* GET home page. */

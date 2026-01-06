@@ -20,10 +20,10 @@ CREATE TABLE users (
     password_hash TEXT NOT NULL,
     rating INTEGER NOT NULL DEFAULT 1500,
     is_admin BOOLEAN,
-    school_id UUID NOT NULL REFERENCES schools(id),
-    grade TEXT NOT NULL,
-    skill_level TEXT NOT NULL,
-    gender TEXT NOT NULL
+    school_id UUID REFERENCES schools(id),
+    grade TEXT,
+    skill_level TEXT,
+    gender TEXT
 );
 
 -- games テーブル

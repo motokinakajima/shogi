@@ -1,17 +1,18 @@
 import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
-import { supabase } from '../lib/supabase.js';
+import { db } from '../lib/db.js';
 import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {
     const sidebarData = await getUserSidebarData(req.userId);
     
-    const { data: rankings } = await supabase
-        .from('users')
-        .select('display_name, rating')
-        .order('rating', { ascending: false })
-        .limit(100);
+    const rankings = await db
+        .selectFrom('users')
+        .select(['display_name', 'rating'])
+        .orderBy('rating', 'desc')
+        .limit(100)
+        .execute();
     
     res.render('rankings', {
         layout: 'layout-auth',

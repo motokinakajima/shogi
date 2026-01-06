@@ -1,31 +1,36 @@
 import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
-import { supabase } from '../lib/supabase.js';
+import { db } from '../lib/db.js';
 import { getUserSidebarData } from '../lib/userHelpers.js';
 
 router.get('/', auth, async function(req, res) {
     const sidebarData = await getUserSidebarData(req.userId);
     
-    const { data: userData } = await supabase
-        .from('users')
-        .select('display_name, rating, email_address')
-        .eq('id', req.userId)
-        .single();
+    const userData = await db
+        .selectFrom('users')
+        .select(['display_name', 'rating', 'email_address'])
+        .where('id', '=', req.userId)
+        .executeTakeFirst();
     
-    const { data: gameHistory } = await supabase
-        .from('games')
-        .select('id, winner, finish_reason, created_at')
-        .or(`sente_id.eq.${req.userId},gote_id.eq.${req.userId}`)
-        .order('created_at', { ascending: false })
-        .limit(10);
+    const gameHistory = await db
+        .selectFrom('games')
+        .select(['id', 'winner', 'finish_reason', 'created_at'])
+        .where((eb) => eb.or([
+            eb('sente_id', '=', req.userId),
+            eb('gote_id', '=', req.userId)
+        ]))
+        .orderBy('created_at', 'desc')
+        .limit(10)
+        .execute();
     
-    const { data: ratingHistory } = await supabase
-        .from('rating_history')
-        .select('rating_before, rating_after, created_at')
-        .eq('user_id', req.userId)
-        .order('created_at', { ascending: false })
-        .limit(20);
+    const ratingHistory = await db
+        .selectFrom('rating_history')
+        .select(['rating_before', 'rating_after', 'created_at'])
+        .where('user_id', '=', req.userId)
+        .orderBy('created_at', 'desc')
+        .limit(20)
+        .execute();
     
     res.render('mypage', {
         layout: 'layout-auth',
