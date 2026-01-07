@@ -1,10 +1,8 @@
 import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
-import { getGame } from '../lib/gameManager.js';
+import { getGame, finishGame } from '../lib/gameManager.js';
 import { db } from '../lib/db.js';
-import { Player } from '../domain/Player.js';
-import { Rating } from '../domain/Rating.js';
 
 router.get('/:gameId', auth, async function(req, res) {
     const game = getGame(req.params.gameId);
@@ -74,45 +72,18 @@ router.post('/:gameId/move', auth, async function(req, res) {
         }
 
         if (game.isFinished) {
-            const winnerId = game.winner === Player.SENTE ? game.senteId : game.goteId;
-            const loserId = game.winner === Player.SENTE ? game.goteId : game.senteId;
-
-            const winnerData = await db
-                .selectFrom('users')
-                .select('rating')
-                .where('id', '=', winnerId)
-                .executeTakeFirst();
-            const loserData = await db
-                .selectFrom('users')
-                .select('rating')
-                .where('id', '=', loserId)
-                .executeTakeFirst();
-
-            const winnerRating = winnerData?.rating ?? Rating.DEFAULT_RATING;
-            const loserRating = loserData?.rating ?? Rating.DEFAULT_RATING;
-            const { winnerNewRating, loserNewRating } = Rating.calculateMatch(winnerRating, loserRating);
-
+            console.log(`[POST /move] Game finished detected. Winner: ${game.winner}, Reason: ${game.finishReason}`);
             try {
-                // ゲームレコードを更新（終局情報を追加）
-                await db.updateTable('games')
-                    .set({
-                        winner: game.winner,
-                        finish_reason: game.finishReason || 'checkmate',
-                        finished_at: new Date(),
-                        is_finished: true
-                    })
-                    .where('id', '=', game.id)
-                    .execute();
-
-                await db.insertInto('rating_history').values([
-                    { user_id: winnerId, game_id: game.id, rating_before: winnerRating, rating_after: winnerNewRating },
-                    { user_id: loserId, game_id: game.id, rating_before: loserRating, rating_after: loserNewRating }
-                ]).execute();
-
-                await db.updateTable('users').set({ rating: winnerNewRating }).where('id', '=', winnerId).execute();
-                await db.updateTable('users').set({ rating: loserNewRating }).where('id', '=', loserId).execute();
+                await finishGame(game, game.winner, game.finishReason || 'checkmate');
+                console.log(`[POST /move] finishGame completed successfully`);
             } catch (gameError) {
-                console.error('Failed to save game:', gameError);
+                console.error('Failed to finish game:', gameError);
+            }
+        } else {
+            // ゲームが続行中の場合、次のプレイヤーのタイマーを再スケジュール
+            const { scheduleGameTimeout } = await import('../lib/gameManager.js');
+            if (scheduleGameTimeout) {
+                scheduleGameTimeout(game);
             }
         }
 
@@ -127,6 +98,17 @@ router.post('/:gameId/move', auth, async function(req, res) {
         });
     } catch (err) {
         console.error(err);
+        
+        // エラー時でもゲームが終了している場合は終了処理を実行
+        const game = getGame(req.params.gameId);
+        if (game && game.isFinished) {
+            try {
+                await finishGame(game, game.winner, game.finishReason || 'checkmate');
+            } catch (gameError) {
+                console.error('Failed to finish game in catch block:', gameError);
+            }
+        }
+        
         return res.status(400).json({ error: err.message });
     }
 });

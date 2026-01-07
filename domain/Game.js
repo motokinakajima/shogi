@@ -63,17 +63,20 @@ export class Game {
         
         // 時間チェック（move完了後、ターン切り替え前）
         const timeoutResult = this.timeManager.consumeTime();
+        console.log(`[Game.requestMove] Time check result: ${timeoutResult}, current player: ${move.player}`);
         if (timeoutResult === 'timeout') {
+            console.log(`[Game.requestMove] TIMEOUT detected! Winner will be: ${opponent}`);
             this.isFinished = true;
             this.winner = opponent; // 時間切れしたのは現在のプレイヤー、勝者は相手
             this.finishReason = 'timeout';
-            throw new Error("Time out");
+            // 例外を投げずに終了状態を返す
+            return { isCheck: false, isCheckmate: false, isTimeout: true };
         }
         
         this.currentTurn = opponent;
         this.timeManager.startTurn(opponent);
         
-        return { isCheck, isCheckmate };
+        return { isCheck, isCheckmate, isTimeout: false };
     }
 
     isCheckmate(player) {
