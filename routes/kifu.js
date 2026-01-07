@@ -4,10 +4,10 @@ import auth from '../lib/middlewares.js';
 import { db } from '../lib/db.js';
 import { getUserSidebarData } from '../lib/userHelpers.js';
 
-router.get('/', auth, async function(req, res) {
+router.get('/:gameId', auth, async function(req, res) {
     const sidebarData = await getUserSidebarData(req.userId);
     
-    const games = await db
+    const game = await db
         .selectFrom('games')
         .innerJoin('users as sente', 'sente.id', 'games.sente_id')
         .innerJoin('users as gote', 'gote.id', 'games.gote_id')
@@ -15,32 +15,27 @@ router.get('/', auth, async function(req, res) {
             'games.id',
             'games.winner',
             'games.finish_reason',
+            'games.finished_at',
             'games.created_at',
-            'games.is_finished',
+            'games.time_control',
+            'sente.id as sente_id',
             'sente.display_name as sente_name',
+            'gote.id as gote_id',
             'gote.display_name as gote_name'
         ])
-        .orderBy('games.created_at', 'desc')
-        .limit(50)
-        .execute();
+        .where('games.id', '=', req.params.gameId)
+        .executeTakeFirst();
     
-    // フロント側の形式に合わせる
-    const formattedGames = games.map(g => ({
-        id: g.id,
-        sente: { display_name: g.sente_name },
-        gote: { display_name: g.gote_name },
-        winner: g.winner,
-        finish_reason: g.finish_reason,
-        created_at: g.created_at,
-        is_finished: g.is_finished
-    }));
+    if (!game) {
+        return res.status(404).send('Game not found');
+    }
     
-    res.render('database', {
+    res.render('kifu', {
         layout: 'layout-auth',
-        title: '棋譜データベース',
+        title: '棋譜閲覧',
         currentPage: 'database',
         ...sidebarData,
-        games: formattedGames
+        game
     });
 });
 

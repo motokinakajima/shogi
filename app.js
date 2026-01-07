@@ -18,6 +18,7 @@ import mypageRouter from './routes/mypage.js';
 import databaseRouter from './routes/database.js';
 import rankingsRouter from './routes/rankings.js';
 import schoolAdminRouter from './routes/school-admin.js';
+import kifuRouter from './routes/kifu.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,7 @@ app.use('/mypage', mypageRouter);
 app.use('/database', databaseRouter);
 app.use('/rankings', rankingsRouter);
 app.use('/school-admin', schoolAdminRouter);
+app.use('/kifu', kifuRouter);
 
 // catch 404
 app.use((req, res, next) => {

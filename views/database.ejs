@@ -17,16 +17,18 @@
                 <th>後手</th>
                 <th>結果</th>
                 <th>終局理由</th>
+                <th>状態</th>
             </tr>
         </thead>
         <tbody>
             <% games.forEach(game => { %>
-                <tr>
+                <tr style="cursor: pointer;" onclick="location.href='/kifu/<%= game.id %>'">
                     <td><%= new Date(game.created_at).toLocaleString('ja-JP') %></td>
                     <td><%= game.sente?.display_name || '不明' %></td>
                     <td><%= game.gote?.display_name || '不明' %></td>
-                    <td><%= game.winner === 'sente' ? '先手勝ち' : '後手勝ち' %></td>
-                    <td><%= game.finish_reason === 'checkmate' ? '詰み' : game.finish_reason %></td>
+                    <td><%= game.is_finished ? (game.winner === 'sente' ? '先手勝ち' : '後手勝ち') : '-' %></td>
+                    <td><%= game.is_finished ? (game.finish_reason === 'checkmate' ? '詰み' : game.finish_reason) : '-' %></td>
+                    <td><%= game.is_finished ? '終了' : '進行中' %></td>
                 </tr>
             <% }) %>
         </tbody>
