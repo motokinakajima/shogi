@@ -194,12 +194,44 @@
                     </thead>
                     <tbody>
                         <% students.forEach(student => { %>
-                            <tr>
+                            <tr data-student-id="<%= student.id %>">
                                 <td><%= student.display_name %></td>
                                 <td><%= student.email_address %></td>
-                                <td><%= student.grade || '-' %></td>
-                                <td><%= student.skill_level || '-' %></td>
-                                <td><%= student.gender || '-' %></td>
+                                <td>
+                                    <select class="student-field" data-field="grade" data-student-id="<%= student.id %>">
+                                        <option value="">未設定</option>
+                                        <option value="小1" <%= student.grade === '小1' ? 'selected' : '' %>>小1</option>
+                                        <option value="小2" <%= student.grade === '小2' ? 'selected' : '' %>>小2</option>
+                                        <option value="小3" <%= student.grade === '小3' ? 'selected' : '' %>>小3</option>
+                                        <option value="小4" <%= student.grade === '小4' ? 'selected' : '' %>>小4</option>
+                                        <option value="小5" <%= student.grade === '小5' ? 'selected' : '' %>>小5</option>
+                                        <option value="小6" <%= student.grade === '小6' ? 'selected' : '' %>>小6</option>
+                                        <option value="中1" <%= student.grade === '中1' ? 'selected' : '' %>>中1</option>
+                                        <option value="中2" <%= student.grade === '中2' ? 'selected' : '' %>>中2</option>
+                                        <option value="中3" <%= student.grade === '中3' ? 'selected' : '' %>>中3</option>
+                                        <option value="高1" <%= student.grade === '高1' ? 'selected' : '' %>>高1</option>
+                                        <option value="高2" <%= student.grade === '高2' ? 'selected' : '' %>>高2</option>
+                                        <option value="高3" <%= student.grade === '高3' ? 'selected' : '' %>>高3</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="student-field" data-field="skill_level" data-student-id="<%= student.id %>">
+                                        <option value="">未設定</option>
+                                        <option value="初心者" <%= student.skill_level === '初心者' ? 'selected' : '' %>>初心者</option>
+                                        <option value="初級" <%= student.skill_level === '初級' ? 'selected' : '' %>>初級</option>
+                                        <option value="中級" <%= student.skill_level === '中級' ? 'selected' : '' %>>中級</option>
+                                        <option value="上級" <%= student.skill_level === '上級' ? 'selected' : '' %>>上級</option>
+                                        <option value="有段者" <%= student.skill_level === '有段者' ? 'selected' : '' %>>有段者</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="student-field" data-field="gender" data-student-id="<%= student.id %>">
+                                        <option value="">未設定</option>
+                                        <option value="男性" <%= student.gender === '男性' ? 'selected' : '' %>>男性</option>
+                                        <option value="女性" <%= student.gender === '女性' ? 'selected' : '' %>>女性</option>
+                                        <option value="その他" <%= student.gender === 'その他' ? 'selected' : '' %>>その他</option>
+                                    </select>
+                                </td>
                                 <td><%= student.rating %></td>
                             </tr>
                         <% }) %>
@@ -208,5 +240,57 @@
             <% } %>
         </div>
     </div>
+    
+    <script>
+        // Handle dropdown changes
+        document.querySelectorAll('.student-field').forEach(select => {
+            select.addEventListener('change', async function() {
+                const studentId = this.dataset.studentId;
+                const field = this.dataset.field;
+                const value = this.value;
+                
+                // Visual feedback
+                const originalBg = this.style.background;
+                this.style.background = '#fff3cd';
+                this.disabled = true;
+                
+                try {
+                    const response = await fetch('/api/school/update-student', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ studentId, field, value })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok) {
+                        // Success feedback
+                        this.style.background = '#d4edda';
+                        setTimeout(() => {
+                            this.style.background = originalBg;
+                        }, 1000);
+                    } else {
+                        // Error feedback
+                        alert('更新に失敗しました: ' + (result.error || 'Unknown error'));
+                        this.style.background = '#f8d7da';
+                        setTimeout(() => {
+                            this.style.background = originalBg;
+                        }, 1000);
+                    }
+                } catch (error) {
+                    console.error('Update failed:', error);
+                    alert('更新に失敗しました');
+                    this.style.background = '#f8d7da';
+                    setTimeout(() => {
+                        this.style.background = originalBg;
+                    }, 1000);
+                } finally {
+                    this.disabled = false;
+                }
+            });
+        });
+    </script>
 </body>
 </html>
