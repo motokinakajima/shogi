@@ -129,4 +129,41 @@ router.post('/school/update-student', auth.schoolAuth, async (req, res) => {
     }
 });
 
+// Get game information
+router.get('/games/:gameId', auth, async (req, res) => {
+    try {
+        const game = await db
+            .selectFrom('games')
+            .selectAll()
+            .where('id', '=', req.params.gameId)
+            .executeTakeFirst();
+        
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+        
+        res.json(game);
+    } catch (error) {
+        console.error('Failed to fetch game:', error);
+        return res.status(500).json({ error: 'Fetch failed' });
+    }
+});
+
+// Get moves for a game
+router.get('/games/:gameId/moves', auth, async (req, res) => {
+    try {
+        const moves = await db
+            .selectFrom('moves')
+            .selectAll()
+            .where('game_id', '=', req.params.gameId)
+            .orderBy('move_number', 'asc')
+            .execute();
+        
+        res.json(moves);
+    } catch (error) {
+        console.error('Failed to fetch moves:', error);
+        return res.status(500).json({ error: 'Fetch failed' });
+    }
+});
+
 export default router;

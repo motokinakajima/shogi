@@ -93,23 +93,24 @@ router.post('/:gameId/move', auth, async function(req, res) {
             const { winnerNewRating, loserNewRating } = Rating.calculateMatch(winnerRating, loserRating);
 
             try {
-                const gameRecord = await db.insertInto('games').values({
-                    sente_id: game.senteId,
-                    gote_id: game.goteId,
-                    winner: game.winner,
-                    finish_reason: game.finishReason || 'checkmate',
-                    time_control: game.timeManager.getTimeControl()
-                }).returning('id').executeTakeFirst();
+                // ゲームレコードを更新（終局情報を追加）
+                await db.updateTable('games')
+                    .set({
+                        winner: game.winner,
+                        finish_reason: game.finishReason || 'checkmate',
+                        finished_at: new Date(),
+                        is_finished: true
+                    })
+                    .where('id', '=', game.id)
+                    .execute();
 
-                if (gameRecord) {
-                    await db.insertInto('rating_history').values([
-                        { user_id: winnerId, game_id: gameRecord.id, rating_before: winnerRating, rating_after: winnerNewRating },
-                        { user_id: loserId, game_id: gameRecord.id, rating_before: loserRating, rating_after: loserNewRating }
-                    ]).execute();
+                await db.insertInto('rating_history').values([
+                    { user_id: winnerId, game_id: game.id, rating_before: winnerRating, rating_after: winnerNewRating },
+                    { user_id: loserId, game_id: game.id, rating_before: loserRating, rating_after: loserNewRating }
+                ]).execute();
 
-                    await db.updateTable('users').set({ rating: winnerNewRating }).where('id', '=', winnerId).execute();
-                    await db.updateTable('users').set({ rating: loserNewRating }).where('id', '=', loserId).execute();
-                }
+                await db.updateTable('users').set({ rating: winnerNewRating }).where('id', '=', winnerId).execute();
+                await db.updateTable('users').set({ rating: loserNewRating }).where('id', '=', loserId).execute();
             } catch (gameError) {
                 console.error('Failed to save game:', gameError);
             }

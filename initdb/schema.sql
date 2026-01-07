@@ -33,9 +33,10 @@ CREATE TABLE games (
     sente_id UUID NOT NULL REFERENCES users(id),
     gote_id UUID NOT NULL REFERENCES users(id),
     winner TEXT CHECK (winner IN ('sente', 'gote')),
-    finish_reason TEXT NOT NULL,
-    finished_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    time_control TEXT
+    finish_reason TEXT,
+    finished_at TIMESTAMPTZ,
+    time_control TEXT,
+    is_finished BOOLEAN NOT NULL DEFAULT false
 );
 
 -- moves テーブル

@@ -33,13 +33,14 @@
 | カラム名 | 型 | 制約 | 説明 |
 |---------|-----|------|------|
 | id | UUID | PK, default: gen_random_uuid() | 対局ID |
-| created_at | TIMESTAMPTZ | NOT NULL, default: NOW() | 作成日時 |
+| created_at | TIMESTAMPTZ | NOT NULL, default: NOW() | 対局開始日時 |
 | sente_id | UUID | NOT NULL, FK → users.id | 先手のユーザーID |
 | gote_id | UUID | NOT NULL, FK → users.id | 後手のユーザーID |
-| winner | TEXT | nullable | 勝者（'sente' または 'gote'） |
-| finish_reason | TEXT | NOT NULL | 終局理由（例：'checkmate'） |
-| finished_at | TIMESTAMPTZ | NOT NULL, default: NOW() | 終局日時 |
+| winner | TEXT | nullable, CHECK ('sente', 'gote') | 勝者（'sente' または 'gote'） |
+| finish_reason | TEXT | nullable | 終局理由（例：'checkmate', 'timeout', 'resign'） |
+| finished_at | TIMESTAMPTZ | nullable | 終局日時 |
 | time_control | TEXT | nullable | 持ち時間設定 |
+| is_finished | BOOLEAN | NOT NULL, default: false | 終局フラグ |
 
 ## moves
 指し手記録

@@ -349,4 +349,15 @@ export class Game {
         this.restoreBoardBackup(backup);
         return isCheckmate;
     }
+
+    static replayToMove(moves, moveNumber) {
+        const tempGame = new Game('replay', 'temp-sente', 'temp-gote');
+        const targetMoves = moves.slice(0, moveNumber);
+        
+        for (const move of targetMoves) {
+            tempGame.applyMoveToBoard(move);
+        }
+        
+        return tempGame.board;
+    }
 }

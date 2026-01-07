@@ -71,7 +71,7 @@ export function joinLobby(ws, userId, displayName) {
         type: 'lobby:ready'
     }));
 
-    ws.on('message', (raw) => {
+    ws.on('message', async (raw) => {
         const msg = JSON.parse(raw);
         
         if (msg.type === 'settings:update') {
@@ -124,7 +124,7 @@ export function joinLobby(ws, userId, displayName) {
             if (!challengerWs) return;
 
             // チャレンジに保存された時間設定を使用
-            const game = createGame(challenge.fromUserId, userId, challenge.timeConfig);
+            const game = await createGame(challenge.fromUserId, userId, challenge.timeConfig);
             const gameId = game.id;
 
             challengerWs.send(JSON.stringify({
