@@ -78,7 +78,34 @@ td:hover { outline: 2px solid #555; }
 .captured-piece.selected { background: #ffeb3b; }
 .captured-piece:hover { outline: 2px solid #555; }
 
-#controls { margin-bottom: 12px; }
+#controls { 
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+}
+
+#controls button {
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+}
+
+.resign-btn {
+    background-color: #dc3545;
+    color: white;
+}
+
+.resign-btn:hover:not(:disabled) {
+    background-color: #c82333;
+}
+
+.resign-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
 #status { margin-top: 8px; font-weight: bold; }
 
 #timer-display {

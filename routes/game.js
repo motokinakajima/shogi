@@ -37,6 +37,45 @@ router.get('/:gameId/state', auth, async function(req, res) {
     });
 });
 
+router.post('/:gameId/resign', auth, async function(req, res) {
+    try {
+        const game = getGame(req.params.gameId);
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+
+        if (game.isFinished) {
+            return res.status(400).json({ error: 'Game already finished' });
+        }
+
+        const player = game.getPlayerById(req.userId);
+        const opponent = player === 'sente' ? 'gote' : 'sente';
+        
+        console.log(`[POST /resign] Player ${player} resigned. Winner: ${opponent}`);
+        
+        game.isFinished = true;
+        game.winner = opponent;
+        game.finishReason = 'resign';
+
+        try {
+            await finishGame(game, opponent, 'resign');
+            console.log(`[POST /resign] finishGame completed successfully`);
+        } catch (gameError) {
+            console.error('Failed to finish game:', gameError);
+            return res.status(500).json({ error: 'Failed to finish game' });
+        }
+
+        return res.json({
+            success: true,
+            isFinished: true,
+            winner: opponent
+        });
+    } catch (err) {
+        console.error(err);
+        return res.status(400).json({ error: err.message });
+    }
+});
+
 router.post('/:gameId/move', auth, async function(req, res) {
     try {
         const game = getGame(req.params.gameId);

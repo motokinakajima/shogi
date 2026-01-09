@@ -6,11 +6,13 @@ module.exports = {
     exec_mode: 'fork',
     env: {
       NODE_ENV: 'development',
-      PORT: 3000
+      PORT: 3000,
+      WS_URL: 'ws://localhost:3000'
     },
     env_production: {
       NODE_ENV: 'production',
-      PORT: 80
+      PORT: 3000,
+      WS_URL: 'wss://kinote.app'
     },
     // ログ設定
     log_file: './logs/combined.log',

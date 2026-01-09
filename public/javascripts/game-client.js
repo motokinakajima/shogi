@@ -118,6 +118,33 @@ function updateCell(x, y, cell, flip) {
     if (state.targets.some(t=>t.x===x&&t.y===y)) td.classList.add('legal-target');
 }
 
+async function resignGame() {
+    if (!confirm('本当に投了しますか？')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/game/${gameId}/resign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+            alert('投了に失敗しました: ' + (data.error || '不明なエラー'));
+            return;
+        }
+        
+        // ゲーム状態を再読み込み
+        await loadGameState();
+        setStatus('投了しました');
+        stopPolling();
+    } catch (err) {
+        console.error(err);
+        alert('投了に失敗しました');
+    }
+}
+
 function startPolling() {
     loadGameState();
     state.pollingId = setInterval(() => {
@@ -368,11 +395,49 @@ async function sendDrop(kind, x, y) {
     }
 }
 
+async function resignGame() {
+    if (!confirm('本当に投了しますか？')) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`/game/${gameId}/resign`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+            alert('投了に失敗しました: ' + (data.error || '不明なエラー'));
+            return;
+        }
+        
+        // ゲーム状態を再読み込み
+        await loadGameState();
+        setStatus('投了しました');
+        stopPolling();
+    } catch (err) {
+        console.error(err);
+        alert('投了に失敗しました');
+    }
+}
+
 function initGameControls() {
     document.getElementById('cancelBtn').onclick = () => { 
         clearSelection(); 
         render(); 
     };
+    
+    const resignBtn = document.getElementById('resignBtn');
+    if (resignBtn) {
+        // 観戦者は投了ボタンを無効化
+        if (isSpectator) {
+            resignBtn.disabled = true;
+            resignBtn.title = '観戦中は投了できません';
+        } else {
+            resignBtn.onclick = resignGame;
+        }
+    }
     
     document.getElementById('promoteYes').onclick = () => {
         if (state.pendingMove) {

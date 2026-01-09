@@ -13,7 +13,8 @@ router.get('/', auth, async function(req, res) {
         currentPage: 'lobby',
         ...sidebarData,
         currentUserId: userId,
-        currentUserName: sidebarData.userName
+        currentUserName: sidebarData.userName,
+        wsUrl: process.env.WS_URL || 'ws://localhost:3000/ws'
     });
 });
 

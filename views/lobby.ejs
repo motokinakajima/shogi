@@ -53,8 +53,9 @@
 <script>
     const currentUserId = '<%= currentUserId %>';
     const currentUserName = '<%= currentUserName %>';
+    const wsUrl = '<%= wsUrl %>';
     
-    const ws = new WebSocket('ws://localhost:3000/ws');
+    const ws = new WebSocket(wsUrl);
     const tbody = document.getElementById('online-users');
     const modal = document.getElementById('challenge-modal');
     const waitingModal = document.getElementById('waiting-modal');
