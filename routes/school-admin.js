@@ -3,6 +3,8 @@ const router = express.Router();
 import { db } from '../lib/db.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import { generateNewUserToken } from '../lib/passwordResetManager.js';
 
 // School authentication middleware
 function schoolAuth(req, res, next) {
@@ -66,7 +68,7 @@ router.get('/register-student', schoolAuth, async function(req, res) {
 // Handle student registration
 router.post('/register-student', schoolAuth, async function(req, res) {
     const schoolId = req.schoolId;
-    const { display_name, email_address, password, grade, skill_level, gender } = req.body;
+    const { display_name, email_address, grade, skill_level, gender } = req.body;
     
     try {
         // Check if email already exists
@@ -80,11 +82,12 @@ router.post('/register-student', schoolAuth, async function(req, res) {
             return res.status(400).json({ error: 'このメールアドレスは既に登録されています' });
         }
         
-        // Hash password
-        const passwordHash = await bcrypt.hash(password, 10);
+        // ランダムパスワード生成（管理者は知らない）
+        const randomPassword = crypto.randomBytes(32).toString('hex');
+        const passwordHash = await bcrypt.hash(randomPassword, 10);
         
         // Insert new user
-        await db
+        const result = await db
             .insertInto('users')
             .values({
                 email_address,
@@ -96,7 +99,28 @@ router.post('/register-student', schoolAuth, async function(req, res) {
                 gender,
                 rating: 1500
             })
-            .execute();
+            .returning('id')
+            .executeTakeFirst();
+        
+        // パスワード設定用トークン生成（24時間有効）
+        const tokenResult = generateNewUserToken(result.id, email_address);
+        
+        if (!tokenResult.success) {
+            console.error('Failed to generate token');
+            return res.status(500).json({ error: 'トークン生成に失敗しました' });
+        }
+        
+        // パスワード設定用URLを生成
+        const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+        const resetUrl = `${baseUrl}/login/reset-password/${tokenResult.token}`;
+        
+        // コンソールに出力（将来的にはメール送信）
+        console.log('\n=== 新規生徒登録 ===');
+        console.log(`表示名: ${display_name}`);
+        console.log(`メール: ${email_address}`);
+        console.log(`パスワード設定 URL: ${resetUrl}`);
+        console.log(`有効期限: 24時間`);
+        console.log('========================\n');
         
         res.redirect('/school-admin/dashboard');
     } catch (error) {

@@ -147,6 +147,7 @@ async function resignGame() {
 
 function startPolling() {
     loadGameState();
+    const pollingInterval = isSpectator ? 1000 : 200; // 観戦者は1秒、対局者は200ms
     state.pollingId = setInterval(() => {
         if (!state.loading && !state.interacting) {
             const now = Date.now();
@@ -154,7 +155,7 @@ function startPolling() {
             loadGameState({preserve:true, diff:!fullRender});
             if (fullRender) state.lastFullRender = now;
         }
-    }, 200);
+    }, pollingInterval);
     
     // タイマーのローカル更新（50msごと）
     setInterval(updateTimerDisplay, 50);
@@ -509,7 +510,37 @@ function updateTimerDisplay() {
 
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initGameControls);
+    document.addEventListener('DOMContentLoaded', () => {
+        initGameControls();
+        startPolling();
+        
+        // 観戦モードのUI調整
+        if (isSpectator) {
+            const banner = document.getElementById('spectator-banner');
+            if (banner) banner.style.display = 'block';
+            
+            // 持ち駒セクションを視覚的に無効化
+            setTimeout(() => {
+                document.querySelectorAll('.captured-piece').forEach(el => {
+                    el.style.cursor = 'not-allowed';
+                    el.style.opacity = '0.6';
+                });
+            }, 500);
+        }
+    });
 } else {
     initGameControls();
+    startPolling();
+    
+    // 観戦モードのUI調整
+    if (isSpectator) {
+        const banner = document.getElementById('spectator-banner');
+        if (banner) banner.style.display = 'block';
+        
+        // 持ち駒セクションを視覚的に無効化
+        document.querySelectorAll('.captured-piece').forEach(el => {
+            el.style.cursor = 'not-allowed';
+            el.style.opacity = '0.6';
+        });
+    }
 }

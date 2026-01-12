@@ -30,6 +30,14 @@
             </div>
         </div>
     </div>
+    
+    <div class="spectate-section">
+        <h2>観戦</h2>
+        <p class="spectate-description">進行中の対局を観戦できます</p>
+        <div id="active-games-list" class="active-games-list">
+            <p style="text-align: center; color: #7f8c8d;">読み込み中...</p>
+        </div>
+    </div>
 </div>
 
 <div id="challenge-modal" class="modal">
@@ -78,7 +86,15 @@
     };
 
     ws.onopen = () => {
-        console.log('connected');
+        // WebSocket接続成功
+    };
+    
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+    
+    ws.onclose = (event) => {
+        console.warn('WebSocket closed:', event.code);
     };
 
     ws.onmessage = async (e) => {
@@ -330,4 +346,45 @@
         
         waitingModal.style.display = 'block';
     }
+    
+    // 進行中のゲーム一覧を取得
+    async function loadActiveGames() {
+        try {
+            const res = await fetch('/api/active-games?limit=10');
+            const data = await res.json();
+            
+            const listEl = document.getElementById('active-games-list');
+            
+            if (!data.games || data.games.length === 0) {
+                listEl.innerHTML = '<p style="text-align: center; color: #7f8c8d;">現在進行中の対局はありません</p>';
+                return;
+            }
+            
+            listEl.innerHTML = data.games.map(game => `
+                <div class="game-card" onclick="window.location.href='/game/${game.id}'">
+                    <div class="game-players">
+                        <div class="player">
+                            <span class="player-name">${game.senteName}</span>
+                            <span class="player-rating">(${game.senteRating})</span>
+                        </div>
+                        <span class="vs">vs</span>
+                        <div class="player">
+                            <span class="player-name">${game.goteName}</span>
+                            <span class="player-rating">(${game.goteRating})</span>
+                        </div>
+                    </div>
+                    <div class="game-info">
+                        <span>${game.moveCount}手目</span>
+                        <span class="turn-indicator">${game.currentTurn === 'sente' ? '▲先手番' : '△後手番'}</span>
+                    </div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Failed to load active games:', error);
+        }
+    }
+    
+    // 初回ロードと定期更新
+    loadActiveGames();
+    setInterval(loadActiveGames, 5000); // 5秒ごとに更新
 </script>

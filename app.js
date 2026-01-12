@@ -48,6 +48,7 @@ app.use('/mypage', mypageRouter);
 app.use('/database', databaseRouter);
 app.use('/rankings', rankingsRouter);
 app.use('/school-admin', schoolAdminRouter);
+app.use('/api', apiRouter);
 app.use('/kifu', kifuRouter);
 
 // catch 404
