@@ -1,4 +1,28 @@
-body { font-family: sans-serif; }
+body { font-family: sans-serif; margin: 0; padding: 0; }
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #f8f9fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.back-button {
+    display: inline-block;
+    padding: 8px 16px;
+    background: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.back-button:hover {
+    background: #2980b9;
+}
 
 #spectator-banner {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

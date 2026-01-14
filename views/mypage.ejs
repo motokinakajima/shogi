@@ -36,10 +36,11 @@
             </thead>
             <tbody>
                 <% gameHistory.forEach(game => { %>
-                    <tr>
+                    <tr style="cursor: pointer;" onclick="location.href='/kifu/<%= game.id %>'">
                         <td><%= new Date(game.created_at).toLocaleDateString('ja-JP') %></td>
                         <td><%= game.winner === 'sente' ? '先手勝ち' : '後手勝ち' %></td>
                         <td><%= game.finish_reason === 'checkmate' ? '詰み' : game.finish_reason %></td>
+                        <td><a href="/kifu/<%= game.id %>" style="color: #3498db; text-decoration: none;">棋譜を見る →</a></td>
                     </tr>
                 <% }) %>
             </tbody>

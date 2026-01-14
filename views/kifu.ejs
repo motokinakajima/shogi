@@ -7,7 +7,12 @@
     <style>
         body {
             margin-left: 240px;
-            padding: 20px;
+            padding: 0;
+        }
+        
+        .game-header {
+            margin: 0;
+            padding: 15px 20px;
         }
         
         #kifu-controls {
@@ -78,7 +83,12 @@
     </style>
 </head>
 <body>
-    <div class="game-info">
+    <div class="game-header">
+        <a href="/database" class="back-button">← 棋譜データベースに戻る</a>
+        <h2 style="margin: 0; color: #2c3e50;">棋譜閲覧</h2>
+        <div style="width: 180px;"></div>
+    </div>
+    <div class="game-info" style="padding: 20px;">
         <p>
             <strong><%= game.sente_name %></strong> (先手) vs <strong><%= game.gote_name %></strong> (後手)<br>
             結果: <%= game.winner === 'sente' ? '先手勝ち' : '後手勝ち' %> 

@@ -6,12 +6,17 @@
     <link rel="stylesheet" href="/stylesheets/game.css">
 </head>
 <body>
+    <div class="game-header">
+        <a href="/lobby" class="back-button">← ロビーに戻る</a>
+        <h2 style="margin: 0; color: #2c3e50;">対局中</h2>
+        <div style="width: 120px;"></div>
+    </div>
     <div id="spectator-banner" style="display: none;">
         👁️ 観戦モード - この対局を観戦中です
     </div>
     <div id="controls">
-        <button id="cancelBtn">Cancel Selection</button>
-        <button id="resignBtn" class="resign-btn">投了</button>
+        <button id="cancelBtn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">Cancel Selection</button>
+        <button id="resignBtn" class="resign-btn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">投了</button>
     </div>
     
     <div id="timer-display">

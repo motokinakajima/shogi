@@ -47,6 +47,12 @@ router.post('/:gameId/resign', auth, async function(req, res) {
         if (game.isFinished) {
             return res.status(400).json({ error: 'Game already finished' });
         }
+        
+        // 対局者チェック：観戦者は投了できない
+        if (req.userId !== game.senteId && req.userId !== game.goteId) {
+            console.log(`[POST /resign] Unauthorized: User ${req.userId} is not a player in game ${game.id}`);
+            return res.status(403).json({ error: 'You are not a player in this game' });
+        }
 
         const player = game.getPlayerById(req.userId);
         const opponent = player === 'sente' ? 'gote' : 'sente';
