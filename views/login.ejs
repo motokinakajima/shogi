@@ -81,6 +81,14 @@
         .links a:hover {
             text-decoration: underline;
         }
+        .success-message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-left: 3px solid #4caf50;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -88,6 +96,7 @@
         <div class="header">KiNote</div>
         <div class="form-body">
             <h1>ログイン</h1>
+            <div id="success-message" class="success-message" style="display: none;"></div>
             <form action="/login" method="POST">
                 <div class="form-group">
                     <label for="email">メールアドレス</label>
@@ -106,5 +115,17 @@
             </div>
         </div>
     </div>
+    <script>
+        // URLパラメータから成功メッセージを表示
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('reset') === 'success') {
+            const messageDiv = document.getElementById('success-message');
+            messageDiv.textContent = '✓ パスワードが正常に更新されました。新しいパスワードでログインしてください。';
+            messageDiv.style.display = 'block';
+            
+            // URLをクリーンにする
+            window.history.replaceState({}, document.title, '/login');
+        }
+    </script>
 </body>
 </html>

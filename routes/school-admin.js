@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { generateNewUserToken } from '../lib/passwordResetManager.js';
+import { sendStudentRegistrationEmail } from '../lib/emailManagerSES.js';
 
 // School authentication middleware
 function schoolAuth(req, res, next) {
@@ -114,7 +115,29 @@ router.post('/register-student', schoolAuth, async function(req, res) {
         const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
         const resetUrl = `${baseUrl}/login/reset-password/${tokenResult.token}`;
         
-        // コンソールに出力（将来的にはメール送信）
+        // 学校情報取得
+        const school = await db
+            .selectFrom('schools')
+            .select('display_name')
+            .where('id', '=', schoolId)
+            .executeTakeFirst();
+        
+        // メール送信
+        const emailResult = await sendStudentRegistrationEmail({
+            email: email_address,
+            displayName: display_name,
+            resetUrl,
+            schoolName: school?.display_name || '学校'
+        });
+        
+        if (emailResult.success) {
+            console.log('✓ Registration email sent to:', email_address);
+        } else {
+            console.error('✗ Failed to send registration email:', emailResult.error);
+            // メール送信失敗してもユーザー登録は継続（コンソールにURLを表示）
+        }
+        
+        // コンソールに出力（バックアップ用）
         console.log('\n=== 新規生徒登録 ===');
         console.log(`表示名: ${display_name}`);
         console.log(`メール: ${email_address}`);

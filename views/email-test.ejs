@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>メール送信テスト - KiNote</title>
+    <link rel="stylesheet" href="/stylesheets/auth.css">
+    <style>
+        body {
+            background: #f5f5f5;
+            padding: 40px 20px;
+        }
+        
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-card {
+            background: white;
+            padding: 30px;
+            border: 1px solid #000000;
+            margin-bottom: 20px;
+        }
+        
+        .test-card h2 {
+            margin: 0 0 20px 0;
+            font-size: 24px;
+            color: #333;
+            border-bottom: 2px solid #4D5D70;
+            padding-bottom: 10px;
+        }
+        
+        .test-card h3 {
+            margin: 20px 0 10px 0;
+            font-size: 18px;
+            color: #4D5D70;
+        }
+        
+        .info-box {
+            background: #fff8e1;
+            border-left: 3px solid #FFE498;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .info-box code {
+            display: block;
+            background: #f5f5f5;
+            padding: 8px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #000000;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            width: 100%;
+            margin: 0;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #000000;
+            display: none;
+        }
+        
+        .result.success {
+            background: #e8f5e9;
+            border-color: #4caf50;
+            display: block;
+        }
+        
+        .result.error {
+            background: #ffebee;
+            border-color: #f44336;
+            display: block;
+        }
+        
+        .code-block {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-card">
+            <h2>📧 KiNote メール送信テストページ</h2>
+            
+            <div class="info-box">
+                <strong>AWS SES設定:</strong>
+                <p>1. AWS IAMでアクセスキーを作成（SES送信権限が必要）</p>
+                <p>2. .envファイルに以下を追加:</p>
+                <code id="env-vars">AWS_REGION=us-east-2<br>AWS_ACCESS_KEY_ID=YOUR_KEY<br>AWS_SECRET_ACCESS_KEY=YOUR_SECRET<br>FROM_EMAIL=noreply@kinote.app</code>
+                <p>3. AWS SESで送信元メールアドレスを検証</p>
+                <p>4. サーバーを再起動</p>
+            </div>
+            
+            <h3>メール送信テスト</h3>
+            
+            <form id="email-test-form">
+                <div class="form-group">
+                    <label for="email">送信先メールアドレス</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        placeholder="test@example.com"
+                        required
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="email-type">メールタイプ</label>
+                    <select id="email-type" name="email-type" required onchange="toggleCustomFields()">
+                        <option value="custom">カスタムメッセージ</option>
+                        <option value="student-registration">新規生徒登録通知</option>
+                        <option value="password-reset">パスワードリセット</option>
+                    </select>
+                </div>
+                
+                <div id="custom-fields">
+                    <div class="form-group">
+                        <label for="subject">件名</label>
+                        <input 
+                            type="text" 
+                            id="subject" 
+                            name="subject" 
+                            placeholder="【KiNote】お知らせ"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">メッセージ本文</label>
+                        <textarea 
+                            id="message" 
+                            name="message" 
+                            rows="8"
+                            placeholder="こちらにメッセージを入力してください..."
+                            style="width: 100%; padding: 10px; border: 1px solid #000000; font-size: 16px; box-sizing: border-box; font-family: inherit;"
+                        ></textarea>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn btn-primary">メール送信</button>
+                    <a href="/school-admin/dashboard" class="btn btn-secondary">ダッシュボードに戻る</a>
+                </div>
+            </form>
+            
+            <div id="result" class="result"></div>
+        </div>
+        
+        <div class="test-card">
+            <h3>📋 環境変数設定例</h3>
+            
+            <p><strong>開発環境（Ethereal Email）:</strong></p>
+            <div class="code-block">
+# .env に追加
+EMAIL_USER=your-email@ethereal.email
+EMAIL_PASS=your-password
+FROM_EMAIL=noreply@kinote.app
+FROM_NAME=KiNote 将棋システム
+BASE_URL=http://localhost:3000
+            </div>
+            
+            <p><strong>本番環境（SendGrid）:</strong></p>
+            <div class="code-block">
+# .env に追加
+NODE_ENV=production
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_USER=apikey
+SMTP_PASS=SG.your-api-key-here
+FROM_EMAIL=noreply@kinote.app
+FROM_NAME=KiNote 将棋システム
+BASE_URL=https://kinote.app
+            </div>
+            
+            <p><strong>本番環境（Gmail SMTP）:</strong></p>
+            <div class="code-block">
+# .env に追加
+NODE_ENV=production
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+FROM_EMAIL=your-email@gmail.com
+FROM_NAME=KiNote 将棋システム
+BASE_URL=https://kinote.app
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // カスタムフィールドの表示切替
+        function toggleCustomFields() {
+            const type = document.getElementById('email-type').value;
+            const customFields = document.getElementById('custom-fields');
+            const subjectInput = document.getElementById('subject');
+            const messageInput = document.getElementById('message');
+            
+            if (type === 'custom') {
+                customFields.style.display = 'block';
+                subjectInput.required = true;
+                messageInput.required = true;
+            } else {
+                customFields.style.display = 'none';
+                subjectInput.required = false;
+                messageInput.required = false;
+            }
+        }
+        
+        // 初期表示
+        toggleCustomFields();
+        
+        // メール送信テスト
+        const form = document.getElementById('email-test-form');
+        const resultDiv = document.getElementById('result');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const type = document.getElementById('email-type').value;
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value;
+            
+            resultDiv.className = 'result';
+            resultDiv.textContent = '送信中...';
+            resultDiv.style.display = 'block';
+            
+            try {
+                const response = await fetch('/email-test/test/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: email, type, subject, message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✓ メール送信成功！</strong><br>
+                        送信先: ${email}<br>
+                        Message ID: ${data.messageId}<br>
+                        <br>
+                        AWS SES経由で送信されました。
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <strong>✗ メール送信失敗</strong><br>
+                        ${data.error || 'Unknown error'}<br>
+                        <br>
+                        .envファイルの設定を確認してください。
+                    `;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <strong>✗ エラー</strong><br>
+                    ${error.message}
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

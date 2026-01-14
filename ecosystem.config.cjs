@@ -7,12 +7,14 @@ module.exports = {
     env: {
       NODE_ENV: 'development',
       PORT: 3000,
-      WS_URL: 'ws://localhost:3000'
+      WS_URL: 'ws://localhost:3000',
+      BASE_URL: 'http://localhost:3000'
     },
     env_production: {
       NODE_ENV: 'production',
       PORT: 3000,
-      WS_URL: 'wss://kinote.app'
+      WS_URL: 'wss://kinote.app',
+      BASE_URL: 'https://kinote.app'
     },
     // ログ設定
     log_file: './logs/combined.log',

@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
 import { generateResetToken, validateResetToken, consumeResetToken, generateNewUserToken } from '../lib/passwordResetManager.js';
+import { sendPasswordResetEmail } from '../lib/emailManagerSES.js';
 
 router.get('/', async function (_req, res) {
     res.render('login', { layout: false, title: 'Login' });
@@ -161,37 +162,61 @@ router.post('/forgot-password', async function (req, res) {
     try {
         const user = await db
             .selectFrom('users')
-            .select('id')
+            .select(['id', 'display_name'])
             .where('email_address', '=', email)
             .executeTakeFirst();
         
         if (!user) {
-            return res.json({ 
-                success: true,
-                message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+            // セキュリティのため、メールが存在しなくても同じメッセージを返す
+            return res.render('forgot-password', {
+                layout: false,
+                success: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）',
+                error: null
             });
         }
         
         const result = generateResetToken(user.id, email);
         
         if (!result.success) {
-            return res.status(429).json({ error: result.error });
+            return res.render('forgot-password', {
+                layout: false,
+                error: result.error,
+                success: null
+            });
         }
         
-        const resetUrl = `http://localhost:3000/login/reset-password/${result.token}`;
+        const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/login/reset-password/${result.token}`;
+        
+        // メール送信
+        const emailResult = await sendPasswordResetEmail({
+            email,
+            displayName: user.display_name || 'ユーザー',
+            resetUrl
+        });
+        
+        if (emailResult.success) {
+            console.log('✓ Password reset email sent to:', email);
+        } else {
+            console.error('✗ Failed to send password reset email:', emailResult.error);
+        }
+        
+        // コンソールにも出力（バックアップ）
         console.log('\n=== PASSWORD RESET URL ===');
         console.log(`Email: ${email}`);
         console.log(`Reset URL: ${resetUrl}`);
         console.log('========================\n');
         
-        res.json({ 
-            success: true,
-            message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+        res.render('forgot-password', {
+            layout: false,
+            success: 'パスワードリセットのリンクをメールで送信しました。メールをご確認ください。',
+            error: null
         });
     } catch (error) {
-        res.json({ 
-            success: true,
-            message: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）'
+        console.error('Forgot password error:', error);
+        res.render('forgot-password', {
+            layout: false,
+            success: 'パスワードリセットのリンクを送信しました（メールアドレスが登録されている場合）',
+            error: null
         });
     }
 });
@@ -203,8 +228,10 @@ router.post('/reset-password/:token', async function (req, res) {
     const result = consumeResetToken(token);
     
     if (!result.valid) {
-        return res.status(400).json({ 
-            error: result.error === 'expired' ? 'トークンの有効期限が切れています' : 'トークンが無効です'
+        return res.render('reset-password', {
+            layout: false,
+            error: result.error === 'expired' ? 'トークンの有効期限が切れています' : 'トークンが無効です',
+            token: null
         });
     }
     
@@ -216,9 +243,15 @@ router.post('/reset-password/:token', async function (req, res) {
             .where('id', '=', result.userId)
             .execute();
         
-        res.json({ success: true, message: 'パスワードが正常に更新されました' });
+        // パスワード設定完了後、ログインページにリダイレクト
+        res.redirect('/login?reset=success');
     } catch (error) {
-        return res.status(500).json({ error: 'パスワードの更新に失敗しました' });
+        console.error('Password reset error:', error);
+        return res.render('reset-password', {
+            layout: false,
+            error: 'パスワードの更新に失敗しました',
+            token
+        });
     }
 });
 

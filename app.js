@@ -19,6 +19,7 @@ import databaseRouter from './routes/database.js';
 import rankingsRouter from './routes/rankings.js';
 import schoolAdminRouter from './routes/school-admin.js';
 import kifuRouter from './routes/kifu.js';
+import emailTestRouter from './routes/email-test.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -50,6 +51,7 @@ app.use('/rankings', rankingsRouter);
 app.use('/school-admin', schoolAdminRouter);
 app.use('/api', apiRouter);
 app.use('/kifu', kifuRouter);
+app.use('/email-test', emailTestRouter);
 
 // catch 404
 app.use((req, res, next) => {

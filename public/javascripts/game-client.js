@@ -262,10 +262,9 @@ function render() {
 function renderCaptured() {
     const leftOwner = myPlayer==='sente' ? 'gote' : 'sente';
     const rightOwner = myPlayer;
-    document.getElementById('left-label').textContent = leftOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
-    document.getElementById('right-label').textContent = rightOwner==='gote' ? '後手 持ち駒' : '先手 持ち駒';
     [['left', leftOwner], ['right', rightOwner]].forEach(([side, owner]) => {
         const div = document.getElementById(side+'-pieces');
+        if (!div) return;
         div.innerHTML = '';
         const grouped = {};
         (state.board.capturedPieces||[]).filter(p=>p.owner===owner).forEach(p => grouped[p.kind]=(grouped[p.kind]||0)+1);

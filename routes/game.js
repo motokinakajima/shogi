@@ -14,6 +14,7 @@ router.get('/:gameId', auth, async function(req, res) {
         layout: false,
         gameId: req.params.gameId,
         userId: req.userId,
+        currentUserId: req.userId,
         senteId: game.senteId,
         goteId: game.goteId
     });
