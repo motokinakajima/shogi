@@ -4,7 +4,7 @@ import { db } from '../lib/db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
-import { generateResetToken, validateResetToken, consumeResetToken } from '../lib/passwordResetManager.js';
+import { generateResetToken, validateResetToken, consumeResetToken, generateNewUserToken } from '../lib/passwordResetManager.js';
 
 router.get('/', async function (_req, res) {
     res.render('login', { layout: false, title: 'Login' });
@@ -109,47 +109,49 @@ router.post('/logout', function (_req, res) {
     res.redirect('/login');
 });
 
+// 新規登録：学校管理者が登録したメールアドレスにパスワード設定リンクを送信
 router.post('/register', async function (req, res) {
-    const { email, username, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
+    const { email } = req.body;
     
     try {
-        const existingUser = await db
+        // 既に登録されているユーザー（学校管理者が登録済み）を検索
+        const user = await db
             .selectFrom('users')
-            .select('id')
-            .where('email_address', '=', email)
-            .execute();
-        
-        if (existingUser.length > 0) {
-            console.log(existingUser);
-            return res.status(400).json({ error: 'Email address already exists' });
-        }
-        
-        await db
-            .insertInto('users')
-            .values({
-                email_address: email,
-                display_name: username,
-                password_hash: passwordHash
-            })
-            .execute();
-        
-        const newUser = await db
-            .selectFrom('users')
-            .select('id')
+            .select(['id', 'password_hash'])
             .where('email_address', '=', email)
             .executeTakeFirst();
         
-        const token = jwt.sign(
-            { userId: newUser.id },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
-        res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
-        res.redirect('/lobby');
+        if (!user) {
+            // ユーザーが存在しない場合（学校管理者が登録していない）
+            return res.status(400).json({ 
+                error: 'このメールアドレスはメンバー登録されていません。学校の管理者にお問い合わせください。' 
+            });
+        }
+        
+        // パスワードが既に設定されているかチェック（初期パスワードはランダム生成なので区別不可だが、説明表示）
+        // 24時間トークンを生成
+        const result = generateNewUserToken(user.id, email);
+        
+        if (!result.success) {
+            return res.status(429).json({ error: result.error });
+        }
+        
+        const resetUrl = `${process.env.BASE_URL || 'http://localhost:3000'}/login/reset-password/${result.token}`;
+        
+        // TODO: 実際のメール送信処理
+        console.log('\n=== 新規登録パスワード設定URL ===');
+        console.log(`メールアドレス: ${email}`);
+        console.log(`URL: ${resetUrl}`);
+        console.log('（有効期限: 24時間）');
+        console.log('================================\n');
+        
+        res.json({ 
+            success: true,
+            message: 'パスワード設定用のリンクをメールで送信しました。メールをご確認ください。'
+        });
     } catch (error) {
         console.error('Registration error:', error);
-        return res.status(400).json({ error: 'Registration failed' });
+        return res.status(500).json({ error: '登録処理中にエラーが発生しました' });
     }
 });
 

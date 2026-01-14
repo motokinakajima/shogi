@@ -1,14 +1,14 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-  font-size: 14px;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", serif;
+  font-size: 16px;
   color: #333;
-  background-color: #f5f5f5;
+  background-color: #ffffff;
 }
 
 a {
-  color: #3498db;
+  color: #4D5D70;
   text-decoration: none;
 }
 
@@ -18,36 +18,36 @@ a:hover {
 
 /* ======== Layout ======== */
 .page {
-  padding: 48px 24px;
-  margin-left: 240px;
-  gap: 48px;
+  padding: 32px 40px;
+  margin-left: 272px;
+  gap: 40px;
   display: flex;
   flex-direction: column;
 }
 
 .description {
-  margin-bottom: 36px;
+  margin-bottom: 24px;
 }
 
 .description h1 {
   margin: 0 0 12px 0;
-  font-size: 24px;
-  color: #2c3e50;
+  font-size: 26px;
+  color: #333;
 }
 
 .description p {
   margin: 0;
-  color: #7f8c8d;
-  font-size: 14px;
+  color: #666;
+  font-size: 16px;
 }
 
 /* ======== Sidebar ======== */
 .sidebar {
   height: 100vh;
-  width: 240px;
-  padding: 32px 16px 24px 16px;
-  border-right: 1px solid #ddd;
-  background-color: #fff;
+  width: 272px;
+  padding: 20px 0;
+  background: #4D5D70;
+  color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -58,52 +58,59 @@ a:hover {
 }
 
 .siteTitle {
-  margin-bottom: 36px;
+  padding-left: 27px;
+  margin-bottom: 40px;
 }
 
 .siteTitle * {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 48px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: #FFE498;
   margin: 0;
 }
 
 .links {
-  gap: 8px;
+  gap: 0;
   display: flex;
   flex-direction: column;
 }
 
 .links a {
-  padding: 8px 12px;
-  color: #555;
-  border-radius: 4px;
+  padding: 18px 32px;
+  font-size: 20px;
+  color: #ffffff;
+  border-radius: 0;
   transition: background-color 0.2s;
 }
 
 .links a:hover {
-  background-color: #f0f0f0;
+  background-color: rgba(255,255,255,0.1);
   text-decoration: none;
 }
 
 .links a.active {
-  background-color: #3498db;
-  color: white;
+  background-color: #e5e5e5;
+  color: #333;
+  font-weight: 600;
 }
 
 .userInfo {
+  padding: 28px 32px 20px;
   gap: 16px;
   display: flex;
   flex-direction: column;
 }
 
 .profile .name {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .profile .name p {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 400;
   margin: 0;
+  color: #ffffff;
 }
 
 .profile .sub {
@@ -112,38 +119,42 @@ a:hover {
 }
 
 .profile .sub span {
-  color: #888;
-  font-size: 12px;
+  color: rgba(255,255,255,0.7);
+  font-size: 14px;
 }
 
 .status {
   margin-bottom: 12px;
+  line-height: 1.85;
 }
 
 .status .rate {
   margin-bottom: 8px;
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 18px;
+  font-weight: 400;
+  color: #ffffff;
 }
 
 .status .today {
-  font-size: 14px;
-  color: #666;
+  font-size: 16px;
+  color: rgba(255,255,255,0.8);
 }
 
 .logout button {
   width: 100%;
-  height: 36px;
-  color: #888;
-  background: white;
-  border: 1px solid #888;
-  border-radius: 4px;
+  height: 40px;
+  color: #4D5D70;
+  background: #ffffff;
+  border: 2px solid #4D5D70;
+  border-radius: 10px;
   cursor: pointer;
+  font-size: 16px;
   transition: all 0.2s;
 }
 
 .logout button:hover {
-  background: #f5f5f5;
+  background: #4D5D70;
+  color: #ffffff;
 }
 
 /* ======== Table ======== */
@@ -152,20 +163,18 @@ a:hover {
   margin-bottom: 36px;
   border-collapse: collapse;
   background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  border-radius: 8px;
-  overflow: hidden;
+  border: 1px solid #000000;
 }
 
 .list thead {
-  font-weight: bold;
-  background: #34495e;
-  color: white;
+  font-weight: 600;
+  background: #D9D9D9;
+  color: #333;
 }
 
 .list tr {
-  height: 48px;
-  border-bottom: 1px solid #ddd;
+  height: 52px;
+  border-bottom: 1px solid rgba(0,0,0,0.6);
 }
 
 .list tbody tr:hover {
@@ -176,9 +185,15 @@ a:hover {
 .list th,
 .list td {
   margin: 0;
-  padding: 12px 16px;
+  padding: 14px 16px;
   text-align: center;
-  font-size: 14px;
+  font-size: 18px;
+  border-right: 1px solid rgba(0,0,0,0.6);
+}
+
+.list th:last-child,
+.list td:last-child {
+  border-right: none;
 }
 
 .list th {
@@ -204,8 +219,7 @@ a:hover {
   align-items: flex-start;
   padding: 24px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #000000;
 }
 
 .actions .receiving {
@@ -214,8 +228,8 @@ a:hover {
 
 .actions .receiving h3 {
   margin: 0 0 16px 0;
-  font-size: 18px;
-  color: #2c3e50;
+  font-size: 20px;
+  color: #333;
 }
 
 .actions .receiving .time-presets {
@@ -226,38 +240,39 @@ a:hover {
 
 /* ======== Buttons ======== */
 .challenge-btn {
-  padding: 6px 16px;
+  padding: 10px 24px;
   cursor: pointer;
-  background-color: #3498db;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  transition: background-color 0.2s;
+  background-color: #ffffff;
+  color: #4D5D70;
+  border: 2px solid #4D5D70;
+  border-radius: 10px;
+  font-size: 18px;
+  transition: all 0.2s;
 }
 
 .challenge-btn:hover {
-  background-color: #2980b9;
+  background-color: #4D5D70;
+  color: #ffffff;
 }
 
 .preset-btn {
   padding: 10px 20px;
-  border: 1px solid #3498db;
+  border: 2px solid #4D5D70;
   background: white;
-  color: #3498db;
-  border-radius: 4px;
+  color: #4D5D70;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   transition: all 0.2s;
   font-weight: 500;
 }
 
 .preset-btn:hover {
-  background: #e8f4f8;
+  background: #f5f5f5;
 }
 
 .preset-btn.active {
-  background: #3498db;
+  background: #4D5D70;
   color: white;
   font-weight: 600;
 }
@@ -266,10 +281,10 @@ a:hover {
 .time-badge {
   display: inline-block;
   padding: 4px 10px;
-  background: #3498db;
+  background: #4D5D70;
   color: white;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
 }
 
@@ -289,16 +304,15 @@ a:hover {
   background-color: #fff;
   margin: 15% auto;
   padding: 32px;
-  border: none;
+  border: 1px solid #000000;
   width: 420px;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  border-radius: 0;
 }
 
 .modal-content h3 {
   margin: 0 0 20px 0;
-  color: #2c3e50;
-  font-size: 20px;
+  color: #333;
+  font-size: 22px;
 }
 
 .modal-buttons {
@@ -309,36 +323,38 @@ a:hover {
 
 .modal-btn {
   padding: 10px 24px;
-  border: none;
-  border-radius: 4px;
+  border: 2px solid #4D5D70;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   transition: all 0.2s;
 }
 
 .accept-btn {
-  background-color: #27ae60;
+  background-color: #4D5D70;
   color: white;
+  border-color: #4D5D70;
 }
 
 .accept-btn:hover {
-  background-color: #229954;
+  background-color: #3a4a5a;
 }
 
 .decline-btn {
-  background-color: #e74c3c;
-  color: white;
+  background-color: #ffffff;
+  color: #4D5D70;
+  border-color: #4D5D70;
 }
 
 .decline-btn:hover {
-  background-color: #c0392b;
+  background-color: #f5f5f5;
 }
 
 #challenge-queue {
-  color: #7f8c8d;
+  color: #666;
   margin-top: 8px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 #pending-list {
@@ -353,7 +369,7 @@ a:hover {
   align-items: center;
   padding: 12px;
   background: #f8f9fa;
-  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.2);
 }
 
 /* ======== Mypage Styles ======== */
@@ -367,36 +383,34 @@ a:hover {
 .stat-card {
   background: white;
   padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #000000;
 }
 
 .stat-card h3 {
   margin: 0 0 12px 0;
-  color: #7f8c8d;
-  font-size: 12px;
+  color: #666;
+  font-size: 14px;
   text-transform: uppercase;
   font-weight: 600;
 }
 
 .stat-card .value {
   font-size: 32px;
-  font-weight: bold;
-  color: #2c3e50;
+  font-weight: 400;
+  color: #333;
 }
 
 .section {
   background: white;
   padding: 24px;
-  border-radius: 8px;
   margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #000000;
 }
 
 .section h2 {
   margin: 0 0 16px 0;
-  color: #2c3e50;
-  font-size: 18px;
+  color: #333;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -407,16 +421,16 @@ a:hover {
 
 .section table th,
 .section table td {
-  padding: 12px;
+  padding: 14px;
   text-align: left;
-  border-bottom: 1px solid #ecf0f1;
+  border-bottom: 1px solid rgba(0,0,0,0.3);
 }
 
 .section table th {
-  background: #f8f9fa;
+  background: #D9D9D9;
   font-weight: 600;
-  color: #2c3e50;
-  font-size: 14px;
+  color: #333;
+  font-size: 16px;
 }
 
 .section table tbody tr:hover {
@@ -426,9 +440,8 @@ a:hover {
 /* ======== Rankings Styles ======== */
 .rankings-container {
   background: white;
-  border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  border: 1px solid #000000;
 }
 
 .rankings-container table {
@@ -444,16 +457,16 @@ a:hover {
 }
 
 .rank {
-  font-weight: bold;
-  color: #2c3e50;
+  font-weight: 600;
+  color: #333;
   font-size: 18px;
 }
 
-.rank-1 { color: #f39c12; }
-.rank-2 { color: #95a5a6; }
+.rank-1 { color: #d4af37; }
+.rank-2 { color: #808080; }
 .rank-3 { color: #cd7f32; }
 
 .rating-value {
   font-weight: 600;
-  color: #3498db;
+  color: #4D5D70;
 }

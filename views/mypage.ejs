@@ -1,6 +1,6 @@
 <div class="page">
     <div class="description">
-        <h1>マイページ</h1>
+        <h1>★ My Page</h1>
         <p>あなたのプロフィールと対局履歴</p>
     </div>
 
@@ -40,7 +40,7 @@
                         <td><%= new Date(game.created_at).toLocaleDateString('ja-JP') %></td>
                         <td><%= game.winner === 'sente' ? '先手勝ち' : '後手勝ち' %></td>
                         <td><%= game.finish_reason === 'checkmate' ? '詰み' : game.finish_reason %></td>
-                        <td><a href="/kifu/<%= game.id %>" style="color: #3498db; text-decoration: none;">棋譜を見る →</a></td>
+                        <td><a href="/kifu/<%= game.id %>" style="color: #4D5D70; text-decoration: none;">棋譜を見る →</a></td>
                     </tr>
                 <% }) %>
             </tbody>
@@ -68,7 +68,7 @@
                         <td><%= new Date(record.created_at).toLocaleDateString('ja-JP') %></td>
                         <td><%= record.rating_before %></td>
                         <td><%= record.rating_after %></td>
-                        <td style="color: <%= record.rating_after > record.rating_before ? '#27ae60' : '#e74c3c' %>">
+                        <td style="color: <%= record.rating_after > record.rating_before ? '#2e7d32' : '#c62828' %>">
                             <%= record.rating_after > record.rating_before ? '+' : '' %><%= record.rating_after - record.rating_before %>
                         </td>
                     </tr>

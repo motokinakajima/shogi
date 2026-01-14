@@ -3,30 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>新規生徒登録 - <%= schoolName %></title>
-    <link rel="stylesheet" href="/stylesheets/style.css">
+    <title>新規生徒登録 - <%= schoolName %> - KiNote</title>
+    <link rel="stylesheet" href="/stylesheets/auth.css">
     <style>
-        .register-container {
+        body {
+            background: #ffffff;
+            display: block;
+        }
+        
+        .school-header {
+            background: #4D5D70;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .school-header .logo {
+            font-size: 32px;
+            color: #FFE498;
+            letter-spacing: 2px;
+        }
+        
+        .school-header h1 {
+            font-size: 20px;
+            color: #ffffff;
+            font-weight: 400;
+            margin: 0;
+        }
+        
+        .school-header .subtitle {
+            font-size: 14px;
+            color: rgba(255,255,255,0.7);
+            margin: 4px 0 0 0;
+        }
+        
+        .register-content {
             max-width: 600px;
-            margin: 60px auto;
+            margin: 40px auto;
             padding: 0 24px;
         }
         
         .register-card {
             background: white;
             padding: 40px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #000000;
         }
         
-        .register-card h1 {
+        .register-card h2 {
             margin: 0 0 8px 0;
-            color: #2c3e50;
+            color: #333;
+            font-size: 24px;
+            font-weight: 400;
         }
         
-        .register-card .subtitle {
-            margin: 0 0 32px 0;
-            color: #7f8c8d;
+        .register-card .info-text {
+            margin: 0 0 24px 0;
+            color: #666;
+            font-size: 14px;
         }
         
         .form-group {
@@ -36,7 +70,7 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            color: #2c3e50;
+            color: #333;
             font-weight: 500;
             font-size: 14px;
         }
@@ -44,17 +78,17 @@
         .form-group input,
         .form-group select {
             width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 12px;
+            border: 1px solid #000000;
+            font-family: inherit;
+            font-size: 16px;
             box-sizing: border-box;
         }
         
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #3498db;
+            border-color: #4D5D70;
         }
         
         .form-actions {
@@ -63,43 +97,15 @@
             margin-top: 32px;
         }
         
-        .btn {
+        .form-actions .btn {
             flex: 1;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            display: inline-block;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        
-        .btn-primary {
-            background: #3498db;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #2980b9;
-        }
-        
-        .btn-secondary {
-            background: #ecf0f1;
-            color: #2c3e50;
-        }
-        
-        .btn-secondary:hover {
-            background: #bdc3c7;
+            width: auto;
         }
         
         .error-message {
             background: #e74c3c;
             color: white;
             padding: 12px;
-            border-radius: 4px;
             margin-bottom: 20px;
             display: none;
         }
@@ -110,16 +116,22 @@
     </style>
 </head>
 <body>
-    <div class="register-container">
+    <div class="school-header">
+        <div>
+            <div class="logo">KiNote</div>
+            <h1><%= schoolName %></h1>
+            <p class="subtitle">新規生徒登録</p>
+        </div>
+    </div>
+    
+    <div class="register-content">
         <div class="register-card">
-            <h1>新規生徒登録</h1>
-            <p class="subtitle"><%= schoolName %></p>
-            
-            <div id="error-message" class="error-message"></div>
-            
-            <p style="color: #7f8c8d; margin-bottom: 20px; font-size: 14px;">
+            <h2>生徒情報を入力</h2>
+            <p class="info-text">
                 ※ 登録後、生徒のメールアドレスにパスワード設定用のリンクが送信されます。
             </p>
+            
+            <div id="error-message" class="error-message"></div>
             
             <form id="register-form" method="POST" action="/school-admin/register-student">
                 <div class="form-group">
@@ -194,9 +206,7 @@
             try {
                 const response = await fetch('/school-admin/register-student', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
                 

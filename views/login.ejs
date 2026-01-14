@@ -1,28 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
+    <title>ログイン - KiNote</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Hiragino Mincho ProN", "Yu Mincho", "MS Mincho", serif;
+            background: #4D5D70;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 0;
+            border: 1px solid #000000;
+            width: 400px;
+        }
+        .header {
+            background: #4D5D70;
+            padding: 20px 30px;
+            color: #FFE498;
+            font-size: 32px;
+            letter-spacing: 2px;
+        }
+        .form-body {
+            padding: 30px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 16px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #000000;
+            font-family: inherit;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            font-size: 18px;
+            background: #4D5D70;
+            color: white;
+            border: 2px solid #4D5D70;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            background: #3a4a5a;
+        }
+        .links {
+            margin-top: 24px;
+            line-height: 2;
+            font-size: 14px;
+            color: #666;
+        }
+        .links a {
+            color: #4D5D70;
+            text-decoration: none;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body>
-    <h1>Login</h1>
-    <form action="/login" method="POST">
-        <div>
-            <label for="email">Email:</label>
-            <input type="email" id="email" name="email" required>
+    <div class="container">
+        <div class="header">KiNote</div>
+        <div class="form-body">
+            <h1>ログイン</h1>
+            <form action="/login" method="POST">
+                <div class="form-group">
+                    <label for="email">メールアドレス</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">パスワード</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit">ログイン</button>
+            </form>
+            <div class="links">
+                学校別メンバー管理の方は、<a href="/login/school">こちら</a><br>
+                新規登録の方は、<a href="/login/register">こちら</a><br>
+                パスワードをお忘れの方は、<a href="/login/forgot-password">こちら</a>
+            </div>
         </div>
-        <div>
-            <label for="password">Password:</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        <button type="submit">Login</button>
-    </form>
-    <p>
-        学校別メンバー管理の方は、<a href="/login/school">こちら</a><br>
-        新規登録の方は、<a href="/login/register">こちら</a><br>
-        パスワードをお忘れの方は、<a href="/login/forgot-password">こちら</a><br>
-        お問い合わせは、<a href="/contact">こちら</a>
-    </p>
+    </div>
 </body>
 </html>

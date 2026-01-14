@@ -3,22 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学校登録</title>
+    <title>学校登録 - KiNote</title>
+    <link rel="stylesheet" href="/stylesheets/auth.css">
 </head>
 <body>
-    <div class="">
-        <h2>学校登録</h2>
-        <form action="/login/school-register" method="POST">
-            <div>
-                <label for="school">学校名</label>
-                <input type="text" id="school" name="school" required>
+    <div class="container">
+        <div class="header">KiNote</div>
+        <div class="form-body">
+            <h1>新規学校登録</h1>
+            <p class="subtitle">管理者専用：新しい学校を登録します</p>
+            <form action="/login/school-register" method="POST">
+                <div class="form-group">
+                    <label for="school">学校名</label>
+                    <input type="text" id="school" name="school" required placeholder="例：開成高等学校">
+                </div>
+                <div class="form-group">
+                    <label for="password">管理者パスワード</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">登録</button>
+            </form>
+            <div class="links">
+                <a href="/login/school">← 学校ログインに戻る</a>
             </div>
-            <div>
-                <label for="password">パスワード</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit">登録</button>
-        </form>
+        </div>
     </div>
 </body>
 </html>
