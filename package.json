@@ -16,6 +16,9 @@
     "ejs": "^3.1.10",
     "express": "^4.22.1",
     "express-ejs-layouts": "^2.5.1",
+    "express-rate-limit": "^8.2.1",
+    "express-validator": "^7.3.1",
+    "helmet": "^8.1.0",
     "http-errors": "~1.6.3",
     "jade": "^0.29.0",
     "jsonwebtoken": "^9.0.3",
@@ -24,6 +27,7 @@
     "nodemailer": "^6.9.8",
     "pg": "^8.16.3",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "winston": "^3.19.0"
   }
 }

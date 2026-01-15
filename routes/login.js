@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
 import { generateResetToken, validateResetToken, consumeResetToken, generateNewUserToken } from '../lib/passwordResetManager.js';
 import { sendPasswordResetEmail } from '../lib/emailManagerSES.js';
+import { getCookieOptions } from '../lib/cookieHelper.js';
+import { authLimiter, passwordResetLimiter } from '../lib/rateLimiter.js';
 
 router.get('/', async function (_req, res) {
     res.render('login', { layout: false, title: 'Login' });
@@ -73,7 +75,7 @@ router.get('/auth-test', auth, async function (req, res) {
     res.render('auth_test', { title: 'Auth Test' });
 });
 
-router.post('/', async function (req, res) {
+router.post('/', authLimiter, async function (req, res) {
     const { email, password } = req.body;
 
     try {
@@ -98,7 +100,10 @@ router.post('/', async function (req, res) {
             { expiresIn: '7d' }
         );
 
-        res.cookie('userToken', token, { httpOnly: true, sameSite: 'lax' });
+        res.cookie('userToken', token, { 
+            ...getCookieOptions(),
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
         res.redirect('/lobby');
     } catch (error) {
         return res.status(400).json({ error: 'Invalid email or password' });
@@ -156,7 +161,7 @@ router.post('/register', async function (req, res) {
     }
 });
 
-router.post('/forgot-password', async function (req, res) {
+router.post('/forgot-password', passwordResetLimiter, async function (req, res) {
     const { email } = req.body;
     
     try {
@@ -275,7 +280,10 @@ router.post('/school', async function (req, res) {
         }
 
         const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
-        res.cookie('schoolToken', token, { httpOnly: true, sameSite: 'lax' });
+        res.cookie('schoolToken', token, { 
+            ...getCookieOptions(),
+            maxAge: 24 * 60 * 60 * 1000 // 1 day
+        });
         res.redirect('/school-admin/dashboard');
     } catch (error) {
         return res.status(400).json({ error: 'Invalid school login credentials' });

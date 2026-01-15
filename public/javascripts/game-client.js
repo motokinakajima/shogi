@@ -395,33 +395,6 @@ async function sendDrop(kind, x, y) {
     }
 }
 
-async function resignGame() {
-    if (!confirm('本当に投了しますか？')) {
-        return;
-    }
-    
-    try {
-        const res = await fetch(`/game/${gameId}/resign`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        
-        if (!res.ok) {
-            alert('投了に失敗しました: ' + (data.error || '不明なエラー'));
-            return;
-        }
-        
-        // ゲーム状態を再読み込み
-        await loadGameState();
-        setStatus('投了しました');
-        stopPolling();
-    } catch (err) {
-        console.error(err);
-        alert('投了に失敗しました');
-    }
-}
-
 function initGameControls() {
     document.getElementById('cancelBtn').onclick = () => { 
         clearSelection(); 

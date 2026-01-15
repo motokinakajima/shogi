@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
 import 'dotenv/config';
+import { validateEnv } from '../lib/env.js';
+import { logger } from '../lib/logger.js';
 import { setupWebSocket } from '../ws/index.js';
 
 import http from 'http';
 import app from '../app.js';
+
+// Validate environment variables on startup
+validateEnv();
 
 const port = normalizePort(process.env.PORT || '3000');
 app.set('port', port);
@@ -15,6 +20,41 @@ server.on('error', onError);
 server.on('listening', onListening);
 
 setupWebSocket(server);
+
+// Graceful shutdown handler
+const shutdown = (signal) => {
+    logger.info(`${signal} received, starting graceful shutdown...`);
+    
+    server.close(() => {
+        logger.info('HTTP server closed');
+        process.exit(0);
+    });
+    
+    // Force shutdown after 10 seconds
+    setTimeout(() => {
+        logger.error('Forced shutdown after timeout');
+        process.exit(1);
+    }, 10000);
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't exit in production, but log it
+    if (process.env.NODE_ENV === 'production') {
+        // Could send to error tracking service here
+    }
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+    // Exit on uncaught exceptions as they leave the app in an undefined state
+    process.exit(1);
+});
 
 function normalizePort(val) {
   const port = parseInt(val, 10);
@@ -32,10 +72,10 @@ function onError(error) {
 
   switch (error.code) {
     case 'EACCES':
-      console.error(bind + ' requires elevated privileges');
+      logger.error(bind + ' requires elevated privileges');
       process.exit(1);
     case 'EADDRINUSE':
-      console.error(bind + ' is already in use');
+      logger.error(bind + ' is already in use');
       process.exit(1);
     default:
       throw error;
@@ -47,5 +87,5 @@ function onListening() {
   const bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  console.log('Listening on ' + bind);
+  logger.info('Server listening on ' + bind);
 }
