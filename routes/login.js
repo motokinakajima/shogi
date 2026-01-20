@@ -86,12 +86,20 @@ router.post('/', authLimiter, async function (req, res) {
             .executeTakeFirst();
         
         if (!data) {
-            return res.status(400).json({ error: 'Invalid email or password' });
+            return res.render('login', { 
+                layout: false, 
+                title: 'Login',
+                error: 'メールアドレスまたはパスワードが正しくありません'
+            });
         }
 
         const ok = await bcrypt.compare(password, data.password_hash);
         if (!ok) {
-            return res.status(400).json({ error: 'Invalid email or password' });
+            return res.render('login', { 
+                layout: false, 
+                title: 'Login',
+                error: 'メールアドレスまたはパスワードが正しくありません'
+            });
         }
 
         const token = jwt.sign(
@@ -104,9 +112,14 @@ router.post('/', authLimiter, async function (req, res) {
             ...getCookieOptions(),
             maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
         });
-        res.redirect('/lobby');
+        res.redirect('/');
     } catch (error) {
-        return res.status(400).json({ error: 'Invalid email or password' });
+        console.error('Login error:', error);
+        return res.render('login', { 
+            layout: false, 
+            title: 'Login',
+            error: 'ログイン処理中にエラーが発生しました'
+        });
     }
 });
 
@@ -275,12 +288,30 @@ router.post('/school', async function (req, res) {
             .executeTakeFirst();
         
         if (!schoolData) {
-            return res.status(400).json({ error: 'Invalid school login credentials' });
+            const data = await db
+                .selectFrom('schools')
+                .select(['id', 'display_name'])
+                .execute();
+            return res.render('school-login', { 
+                layout: false, 
+                title: 'School Login', 
+                schools: data,
+                error: '学校IDまたはパスワードが正しくありません'
+            });
         }
 
         const ok = await bcrypt.compare(password, schoolData.password_hash);
         if (!ok) {
-            return res.status(400).json({ error: 'Invalid school login credentials' });
+            const data = await db
+                .selectFrom('schools')
+                .select(['id', 'display_name'])
+                .execute();
+            return res.render('school-login', { 
+                layout: false, 
+                title: 'School Login', 
+                schools: data,
+                error: '学校IDまたはパスワードが正しくありません'
+            });
         }
 
         const token = jwt.sign({ schoolId: school }, process.env.JWT_SECRET, { expiresIn: '1d' });
@@ -290,7 +321,8 @@ router.post('/school', async function (req, res) {
         });
         res.redirect('/school-admin/dashboard');
     } catch (error) {
-        return res.status(400).json({ error: 'Invalid school login credentials' });
+        console.error('School login error:', error);
+        return res.status(500).json({ error: 'ログイン処理中にエラーが発生しました' });
     }
 });
 
