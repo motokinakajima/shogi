@@ -201,21 +201,25 @@ router.post('/forgot-password', passwordResetLimiter, async function (req, res) 
         
         if (emailResult.success) {
             console.log('✓ Password reset email sent to:', email);
+            // コンソールにも出力（バックアップ）
+            console.log('\n=== PASSWORD RESET URL ===');
+            console.log(`Email: ${email}`);
+            console.log(`Reset URL: ${resetUrl}`);
+            console.log('========================\n');
+            
+            res.render('forgot-password', {
+                layout: false,
+                success: 'パスワードリセットのリンクをメールで送信しました。メールをご確認ください。',
+                error: null
+            });
         } else {
             console.error('✗ Failed to send password reset email:', emailResult.error);
+            res.render('forgot-password', {
+                layout: false,
+                error: 'メール送信に失敗しました。しばらくしてから再度お試しください。',
+                success: null
+            });
         }
-        
-        // コンソールにも出力（バックアップ）
-        console.log('\n=== PASSWORD RESET URL ===');
-        console.log(`Email: ${email}`);
-        console.log(`Reset URL: ${resetUrl}`);
-        console.log('========================\n');
-        
-        res.render('forgot-password', {
-            layout: false,
-            success: 'パスワードリセットのリンクをメールで送信しました。メールをご確認ください。',
-            error: null
-        });
     } catch (error) {
         console.error('Forgot password error:', error);
         res.render('forgot-password', {
