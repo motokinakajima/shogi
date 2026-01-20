@@ -30,8 +30,9 @@ const __dirname = dirname(__filename);
 const app = express();
 
 // Trust proxy for rate limiting and X-Forwarded-For headers
-// Required when behind nginx or other reverse proxy
-app.set('trust proxy', true);
+// Set to 1 to trust the first proxy (nginx)
+// This allows rate limiting to work correctly while maintaining security
+app.set('trust proxy', 1);
 
 // Security headers (standard practice)
 // Note: We allow unsafe-inline for EJS templates with inline event handlers
