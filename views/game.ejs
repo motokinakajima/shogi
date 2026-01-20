@@ -16,40 +16,63 @@
         👁️ 観戦モード - この対局を観戦中です
     </div>
     
-    <div class="game-wrapper">
-        <!-- 左側：相手エリア -->
-        <div class="side-column left-side">
-            <div id="<%= currentUserId === senteId ? 'gote' : 'sente' %>-timer-container" class="player-timer">
-                <div id="<%= currentUserId === senteId ? 'gote' : 'sente' %>-timer" class="timer-value">--:--</div>
-            </div>
-            <div class="captured-section">
-                <div id="left-pieces" class="captured-grid"></div>
-            </div>
-        </div>
+    <div class="main-layout">
+        <!-- 左側：将棋盤エリア -->
+        <div class="game-area">
+            <div class="game-wrapper">
+                <!-- 左側：相手エリア -->
+                <div class="side-column left-side">
+                    <div class="player-label">
+                        <%= currentUserId === senteId ? '後手' : '先手' %>
+                        <span class="player-role">（相手）</span>
+                    </div>
+                    <div id="<%= currentUserId === senteId ? 'gote' : 'sente' %>-timer-container" class="player-timer">
+                        <div id="<%= currentUserId === senteId ? 'gote' : 'sente' %>-timer" class="timer-value">--:--</div>
+                    </div>
+                    <div class="captured-section">
+                        <div id="left-pieces" class="captured-grid"></div>
+                    </div>
+                </div>
 
-        <!-- 中央：将棋盤 -->
-        <div class="board-container">
-            <table id="board"></table>
-        </div>
+                <!-- 中央：将棋盤 -->
+                <div class="board-container">
+                    <table id="board"></table>
+                </div>
 
-        <!-- 右側：自分エリア -->
-        <div class="side-column right-side">
-            <div id="<%= currentUserId === senteId ? 'sente' : 'gote' %>-timer-container" class="player-timer">
-                <div id="<%= currentUserId === senteId ? 'sente' : 'gote' %>-timer" class="timer-value">--:--</div>
+                <!-- 右側：自分エリア -->
+                <div class="side-column right-side">
+                    <div class="player-label">
+                        <%= currentUserId === senteId ? '先手' : '後手' %>
+                        <span class="player-role">（あなた）</span>
+                    </div>
+                    <div id="<%= currentUserId === senteId ? 'sente' : 'gote' %>-timer-container" class="player-timer">
+                        <div id="<%= currentUserId === senteId ? 'sente' : 'gote' %>-timer" class="timer-value">--:--</div>
+                    </div>
+                    <div class="captured-section">
+                        <div id="right-pieces" class="captured-grid"></div>
+                    </div>
+                </div>
             </div>
-            <div class="captured-section">
-                <div id="right-pieces" class="captured-grid"></div>
+
+            <!-- コントロール -->
+            <div id="controls">
+                <button id="cancelBtn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">選択解除</button>
+                <button id="resignBtn" class="resign-btn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">投了</button>
+            </div>
+            
+            <div id="status">Loading…</div>
+        </div>
+        
+        <!-- 右側：チャットエリア -->
+        <div class="chat-container">
+            <div class="chat-header">💬 チャット</div>
+            <div id="chat-messages" class="chat-messages"></div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="メッセージを入力..." maxlength="200">
+                <button id="chat-send-btn">送信</button>
             </div>
         </div>
     </div>
-
-    <!-- コントロール -->
-    <div id="controls">
-        <button id="cancelBtn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">選択解除</button>
-        <button id="resignBtn" class="resign-btn" style="<%= (currentUserId !== senteId && currentUserId !== goteId) ? 'display: none;' : '' %>">投了</button>
-    </div>
-    
-    <div id="status">Loading…</div>
     
     <!-- 成り確認モーダル -->
     <div id="promote-modal">

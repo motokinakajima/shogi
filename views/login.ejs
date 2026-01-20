@@ -89,6 +89,15 @@
             border-left: 3px solid #4caf50;
             font-size: 14px;
         }
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            margin-bottom: 20px;
+            border-left: 3px solid #f44336;
+            font-size: 14px;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -97,7 +106,8 @@
         <div class="form-body">
             <h1>ログイン</h1>
             <div id="success-message" class="success-message" style="display: none;"></div>
-            <form action="/login" method="POST">
+            <div id="error-message" class="error-message"></div>
+            <form id="login-form" action="/login" method="POST">
                 <div class="form-group">
                     <label for="email">メールアドレス</label>
                     <input type="email" id="email" name="email" required>
@@ -125,6 +135,47 @@
             
             // URLをクリーンにする
             window.history.replaceState({}, document.title, '/login');
+        
+        // ログインフォーム送信処理
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorDiv = document.getElementById('error-message');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            // エラーメッセージをクリア
+            errorDiv.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.textContent = 'ログイン中...';
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // ログイン成功 - リダイレクト
+                    window.location.href = '/lobby';
+                } else {
+                    // エラー表示
+                    errorDiv.textContent = data.error || 'ログインに失敗しました';
+                    errorDiv.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.textContent = 'ログイン';
+                }
+            } catch (error) {
+                errorDiv.textContent = 'ネットワークエラーが発生しました';
+                errorDiv.style.display = 'block';
+                submitButton.disabled = false;
+                submitButton.textContent = 'ログイン';
+            }
+        });
         }
     </script>
 </body>

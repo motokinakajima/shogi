@@ -1,7 +1,7 @@
 import express from 'express';
 var router = express.Router();
 import auth from '../lib/middlewares.js';
-import { getGame, finishGame } from '../lib/gameManager.js';
+import { getGame, finishGame, addChatMessage, getChatMessages } from '../lib/gameManager.js';
 import { db } from '../lib/db.js';
 
 router.get('/:gameId', auth, async function(req, res) {
@@ -27,6 +27,7 @@ router.get('/:gameId/state', auth, async function(req, res) {
     }
 
     const timeState = game.timeManager.getState();
+    const since = parseInt(req.query.since) || 0;
 
     return res.json({
         board: game.board.toJson,
@@ -34,7 +35,8 @@ router.get('/:gameId/state', auth, async function(req, res) {
         isFinished: game.isFinished,
         winner: game.winner,
         moveCount: game.kifu.getMoves().length,
-        timeState: timeState
+        timeState: timeState,
+        chatMessages: getChatMessages(req.params.gameId, since)
     });
 });
 
@@ -80,6 +82,43 @@ router.post('/:gameId/resign', auth, async function(req, res) {
     } catch (err) {
         console.error(err);
         return res.status(400).json({ error: err.message });
+    }
+});
+
+router.post('/:gameId/chat', auth, async function(req, res) {
+    try {
+        const game = getGame(req.params.gameId);
+        if (!game) {
+            return res.status(404).json({ error: 'Game not found' });
+        }
+        
+        const { message } = req.body;
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+        
+        if (message.trim().length > 200) {
+            return res.status(400).json({ error: 'Message too long (max 200 characters)' });
+        }
+        
+        // ユーザー名取得
+        const user = await db
+            .selectFrom('users')
+            .select('display_name')
+            .where('id', '=', req.userId)
+            .executeTakeFirst();
+        
+        addChatMessage(
+            req.params.gameId,
+            req.userId,
+            user?.display_name || 'Unknown',
+            message.trim()
+        );
+        
+        return res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ error: 'Failed to send message' });
     }
 });
 

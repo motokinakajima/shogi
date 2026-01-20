@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import auth from '../lib/middlewares.js';
 import { generateResetToken, validateResetToken, consumeResetToken, generateNewUserToken } from '../lib/passwordResetManager.js';
-import { sendPasswordResetEmail } from '../lib/emailManagerSES.js';
+import { sendPasswordResetEmail } from '../lib/emailManager.js';
 import { getCookieOptions } from '../lib/cookieHelper.js';
 import { authLimiter, passwordResetLimiter } from '../lib/rateLimiter.js';
 

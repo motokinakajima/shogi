@@ -29,7 +29,9 @@ const state = {
     pendingMove: null, 
     lastFullRender: 0,
     timeState: null,
-    lastTimeSync: null
+    lastTimeSync: null,
+    lastChatTimestamp: 0,
+    sendingChat: false
 };
 
 const setStatus = msg => document.getElementById('status').textContent = msg;
@@ -38,7 +40,7 @@ async function loadGameState(opts={}) {
     if (state.loading) return;
     state.loading = true;
     try {
-        const res = await fetch(`/game/${gameId}/state`);
+        const res = await fetch(`/game/${gameId}/state?since=${state.lastChatTimestamp}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         
@@ -47,6 +49,16 @@ async function loadGameState(opts={}) {
             state.timeState = data.timeState;
             state.lastTimeSync = Date.now();
             updateTimerDisplay();
+        }
+        
+        // チャットメッセージを追加
+        if (data.chatMessages && data.chatMessages.length > 0) {
+            data.chatMessages.forEach(msg => {
+                appendChatMessage(msg);
+                if (msg.timestamp > state.lastChatTimestamp) {
+                    state.lastChatTimestamp = msg.timestamp;
+                }
+            });
         }
         
         if (opts.diff && state.board) {
@@ -480,10 +492,93 @@ function updateTimerDisplay() {
     goteContainer.classList.toggle('warning', goteTime < 30000);
 }
 
+// チャット関数
+function appendChatMessage(msg) {
+    const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) return;
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'chat-message';
+    if (msg.userId === currentUserId) {
+        messageDiv.classList.add('own-message');
+    }
+    
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'chat-name';
+    nameSpan.textContent = msg.displayName;
+    
+    const textSpan = document.createElement('span');
+    textSpan.className = 'chat-text';
+    textSpan.textContent = msg.message;
+    
+    messageDiv.appendChild(nameSpan);
+    messageDiv.appendChild(textSpan);
+    chatMessages.appendChild(messageDiv);
+    
+    // 自動スクロール
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendChatMessage() {
+    if (state.sendingChat) return;
+    
+    const input = document.getElementById('chat-input');
+    if (!input) return;
+    
+    const message = input.value.trim();
+    if (!message) return;
+    
+    if (message.length > 200) {
+        alert('メッセージが長すぎます（最大00文字）');
+        return;
+    }
+    
+    state.sendingChat = true;
+    try {
+        const res = await fetch(`/game/${gameId}/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message })
+        });
+        
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || '送信に失敗しました');
+        }
+        
+        input.value = '';
+        // すぐにポーリングで取得される
+    } catch (err) {
+        console.error(err);
+        alert('メッセージの送信に失敗しました');
+    } finally {
+        state.sendingChat = false;
+    }
+}
+
+function initChatControls() {
+    const chatInput = document.getElementById('chat-input');
+    const chatSendBtn = document.getElementById('chat-send-btn');
+    
+    if (chatSendBtn) {
+        chatSendBtn.onclick = sendChatMessage;
+    }
+    
+    if (chatInput) {
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        });
+    }
+}
+
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         initGameControls();
+        initChatControls();
         startPolling();
         
         // 観戦モードのUI調整
@@ -502,6 +597,7 @@ if (document.readyState === 'loading') {
     });
 } else {
     initGameControls();
+    initChatControls();
     startPolling();
     
     // 観戦モードのUI調整

@@ -4,8 +4,8 @@ import auth from '../lib/middlewares.js';
 import { 
     sendStudentRegistrationEmail,
     sendPasswordResetEmail,
-    sendEmailViaSES
-} from '../lib/emailManagerSES.js';
+    sendEmail
+} from '../lib/emailManager.js';
 
 // メールテストページ（管理者認証必須）
 router.get('/test', auth.adminAuth, function(req, res) {
@@ -72,7 +72,7 @@ router.post('/test/send', auth.adminAuth, async function(req, res) {
 </html>
             `.trim();
             
-            result = await sendEmailViaSES({
+            result = await sendEmail({
                 to,
                 subject: subject || 'KiNoteからのお知らせ',
                 text: message,

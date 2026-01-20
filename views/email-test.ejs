@@ -121,12 +121,11 @@
             <h2>📧 KiNote メール送信テストページ</h2>
             
             <div class="info-box">
-                <strong>AWS SES設定:</strong>
-                <p>1. AWS IAMでアクセスキーを作成（SES送信権限が必要）</p>
-                <p>2. .envファイルに以下を追加:</p>
-                <code id="env-vars">AWS_REGION=us-east-2<br>AWS_ACCESS_KEY_ID=YOUR_KEY<br>AWS_SECRET_ACCESS_KEY=YOUR_SECRET<br>FROM_EMAIL=noreply@kinote.app</code>
-                <p>3. AWS SESで送信元メールアドレスを検証</p>
-                <p>4. サーバーを再起動</p>
+                <strong>Brevo SMTP設定:</strong>
+                <p>1. BrevoアカウントのSMTP設定を確認</p>
+                <p>2. .envファイルに以下が設定されていることを確認:</p>
+                <code id="env-vars">SMTP_HOST=smtp-relay.brevo.com<br>SMTP_PORT=587<br>SMTP_USER=a0684f001@smtp-brevo.com<br>SMTP_PASS=W2VnSxK1m8pqI90k<br>FROM_EMAIL=noreply@kinote.app</code>
+                <p>3. サーバーが起動時に「✅ SMTP接続成功」と表示されることを確認</p>
             </div>
             
             <h3>メール送信テスト</h3>
@@ -152,7 +151,7 @@
                     </select>
                 </div>
                 
-                <div id="custom-fields">
+                <div id="custom-fields" style="display: none;">
                     <div class="form-group">
                         <label for="subject">件名</label>
                         <input 
@@ -187,17 +186,19 @@
         <div class="test-card">
             <h3>📋 環境変数設定例</h3>
             
-            <p><strong>開発環境（Ethereal Email）:</strong></p>
+            <p><strong>現在の設定（Brevo SMTP）:</strong></p>
             <div class="code-block">
-# .env に追加
-EMAIL_USER=your-email@ethereal.email
-EMAIL_PASS=your-password
+# .env に設定済み
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=a0684f001@smtp-brevo.com
+SMTP_PASS=W2VnSxK1m8pqI90k
 FROM_EMAIL=noreply@kinote.app
 FROM_NAME=KiNote 将棋システム
 BASE_URL=http://localhost:3000
             </div>
             
-            <p><strong>本番環境（SendGrid）:</strong></p>
+            <p><strong>別のSMTPサービス例（SendGrid）:</strong></p>
             <div class="code-block">
 # .env に追加
 NODE_ENV=production
@@ -279,7 +280,7 @@ BASE_URL=https://kinote.app
                         送信先: ${email}<br>
                         Message ID: ${data.messageId}<br>
                         <br>
-                        AWS SES経由で送信されました。
+                        Brevo SMTP経由で送信されました。
                     `;
                 } else {
                     resultDiv.className = 'result error';

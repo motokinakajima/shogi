@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { generateNewUserToken } from '../lib/passwordResetManager.js';
-import { sendStudentRegistrationEmail } from '../lib/emailManagerSES.js';
+import { sendStudentRegistrationEmail } from '../lib/emailManager.js';
 
 // School authentication middleware
 function schoolAuth(req, res, next) {

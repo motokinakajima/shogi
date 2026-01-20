@@ -7,8 +7,6 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
-    "@aws-sdk/client-ses": "^3.968.0",
-    "@supabase/supabase-js": "^2.89.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
